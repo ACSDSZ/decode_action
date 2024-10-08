@@ -1,1725 +1,1901 @@
-//Tue Aug 27 2024 06:22:58 GMT+0000 (Coordinated Universal Time)
+//Tue Oct 08 2024 02:51:24 GMT+0000 (Coordinated Universal Time)
 //Base:https://github.com/echo094/decode-js
 //Modify:https://github.com/smallfawn/decode_action
-const rsaFunc = (e, t, r) => {
-  var n = "0123456789abcdefghijklmnopqrstuvwxyz";
-  function i(e) {
-    return n.charAt(e);
-  }
-  function s(e, t) {
-    return e & t;
-  }
-  function o(e, t) {
-    return e | t;
-  }
-  function a(e, t) {
-    return e ^ t;
-  }
-  function l(e, t) {
-    return e & ~t;
-  }
-  function c(e) {
-    if (0 == e) return -1;
-    var t = 0;
-    return 0 == (65535 & e) && (e >>= 16, t += 16), 0 == (255 & e) && (e >>= 8, t += 8), 0 == (15 & e) && (e >>= 4, t += 4), 0 == (3 & e) && (e >>= 2, t += 2), 0 == (1 & e) && ++t, t;
-  }
-  function u(e) {
-    for (var t = 0; 0 != e;) e &= e - 1, ++t;
-    return t;
-  }
-  var d,
-    p = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-    f = "=";
-  function h(e) {
-    var t,
-      r,
-      n = "";
-    for (t = 0; t + 3 <= e.length; t += 3) r = parseInt(e.substring(t, t + 3), 16), n += p.charAt(r >> 6) + p.charAt(63 & r);
-    for (t + 1 == e.length ? (r = parseInt(e.substring(t, t + 1), 16), n += p.charAt(r << 2)) : t + 2 == e.length && (r = parseInt(e.substring(t, t + 2), 16), n += p.charAt(r >> 2) + p.charAt((3 & r) << 4)); (3 & n.length) > 0;) n += f;
-    return n;
-  }
-  function g(e) {
-    var t,
-      r = "",
-      n = 0,
-      s = 0;
-    for (t = 0; t < e.length && e.charAt(t) != f; ++t) {
-      var o = p.indexOf(e.charAt(t));
-      o < 0 || (0 == n ? (r += i(o >> 2), s = 3 & o, n = 1) : 1 == n ? (r += i(s << 2 | o >> 4), s = 15 & o, n = 2) : 2 == n ? (r += i(s), r += i(o >> 2), s = 3 & o, n = 3) : (r += i(s << 2 | o >> 4), r += i(15 & o), n = 0));
-    }
-    return 1 == n && (r += i(s << 2)), r;
-  }
-  var m,
-    v = function (e) {
-      var t;
-      if (void 0 === d) {
-        var r = "0123456789ABCDEF",
-          n = " \f\n\r\t\xA0\u2028\u2029";
-        for (d = {}, t = 0; t < 16; ++t) d[r.charAt(t)] = t;
-        for (r = r.toLowerCase(), t = 10; t < 16; ++t) d[r.charAt(t)] = t;
-        for (t = 0; t < 8; ++t) d[n.charAt(t)] = -1;
-      }
-      var i = [],
-        s = 0,
-        o = 0;
-      for (t = 0; t < e.length; ++t) {
-        var a = e.charAt(t);
-        if ("=" == a) break;
-        if (-1 != (a = d[a])) {
-          if (void 0 === a) throw new Error("Illegal character at offset " + t);
-          s |= a, ++o >= 2 ? (i[i.length] = s, s = 0, o = 0) : s <<= 4;
-        }
-      }
-      if (o) throw new Error("Hex encoding incomplete: 4 bits missing");
-      return i;
-    },
-    y = {
-      decode: function (e) {
-        var t;
-        if (void 0 === m) {
-          var r = "= \f\n\r\t\xA0\u2028\u2029";
-          for (m = Object.create(null), t = 0; t < 64; ++t) m["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt(t)] = t;
-          for (m["-"] = 62, m._ = 63, t = 0; t < 9; ++t) m[r.charAt(t)] = -1;
-        }
-        var n = [],
-          i = 0,
-          s = 0;
-        for (t = 0; t < e.length; ++t) {
-          var o = e.charAt(t);
-          if ("=" == o) break;
-          if (-1 != (o = m[o])) {
-            if (void 0 === o) throw new Error("Illegal character at offset " + t);
-            i |= o, ++s >= 4 ? (n[n.length] = i >> 16, n[n.length] = i >> 8 & 255, n[n.length] = 255 & i, i = 0, s = 0) : i <<= 6;
-          }
-        }
-        switch (s) {
-          case 1:
-            throw new Error("Base64 encoding incomplete: at least 2 bits missing");
-          case 2:
-            n[n.length] = i >> 10;
-            break;
-          case 3:
-            n[n.length] = i >> 16, n[n.length] = i >> 8 & 255;
-        }
-        return n;
-      },
-      re: /-----BEGIN [^-]+-----([A-Za-z0-9+\/=\s]+)-----END [^-]+-----|begin-base64[^\n]+\n([A-Za-z0-9+\/=\s]+)====/,
-      unarmor: function (e) {
-        var t = y.re.exec(e);
-        if (t) if (t[1]) e = t[1];else {
-          if (!t[2]) throw new Error("RegExp out of sync");
-          e = t[2];
-        }
-        return y.decode(e);
-      }
-    },
-    b = 10000000000000,
-    w = function () {
-      function e(e) {
-        this.buf = [+e || 0];
-      }
-      return e.prototype.mulAdd = function (e, t) {
-        var r,
-          n,
-          i = this.buf,
-          s = i.length;
-        for (r = 0; r < s; ++r) (n = i[r] * e + t) < b ? t = 0 : n -= (t = 0 | n / b) * b, i[r] = n;
-        t > 0 && (i[r] = t);
-      }, e.prototype.sub = function (e) {
-        var t,
-          r,
-          n = this.buf,
-          i = n.length;
-        for (t = 0; t < i; ++t) (r = n[t] - e) < 0 ? (r += b, e = 1) : e = 0, n[t] = r;
-        for (; 0 === n[n.length - 1];) n.pop();
-      }, e.prototype.toString = function (e) {
-        if (10 != (e || 10)) throw new Error("only base 10 is supported");
-        for (var t = this.buf, r = t[t.length - 1].toString(), n = t.length - 2; n >= 0; --n) r += (b + t[n]).toString().substring(1);
-        return r;
-      }, e.prototype.valueOf = function () {
-        for (var e = this.buf, t = 0, r = e.length - 1; r >= 0; --r) t = t * b + e[r];
-        return t;
-      }, e.prototype.simplify = function () {
-        var e = this.buf;
-        return 1 == e.length ? e[0] : this;
-      }, e;
-    }(),
-    S = /^(\d\d)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])([01]\d|2[0-3])(?:([0-5]\d)(?:([0-5]\d)(?:[.,](\d{1,3}))?)?)?(Z|[-+](?:[0]\d|1[0-2])([0-5]\d)?)?$/,
-    T = /^(\d\d\d\d)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])([01]\d|2[0-3])(?:([0-5]\d)(?:([0-5]\d)(?:[.,](\d{1,3}))?)?)?(Z|[-+](?:[0]\d|1[0-2])([0-5]\d)?)?$/;
-  function x(e, t) {
-    return e.length > t && (e = e.substring(0, t) + "\u2026"), e;
-  }
-  var E,
-    O = function () {
-      function e(t, r) {
-        this.hexDigits = "0123456789ABCDEF", t instanceof e ? (this.enc = t.enc, this.pos = t.pos) : (this.enc = t, this.pos = r);
-      }
-      return e.prototype.get = function (e) {
-        if (void 0 === e && (e = this.pos++), e >= this.enc.length) throw new Error("Requesting byte offset ".concat(e, " on a stream of length ").concat(this.enc.length));
-        return "string" === typeof this.enc ? this.enc.charCodeAt(e) : this.enc[e];
-      }, e.prototype.hexByte = function (e) {
-        return this.hexDigits.charAt(e >> 4 & 15) + this.hexDigits.charAt(15 & e);
-      }, e.prototype.hexDump = function (e, t, r) {
-        for (var n = "", i = e; i < t; ++i) if (n += this.hexByte(this.get(i)), !0 !== r) switch (15 & i) {
-          case 7:
-            n += "  ";
-            break;
-          case 15:
-            n += "\n";
-            break;
-          default:
-            n += " ";
-        }
-        return n;
-      }, e.prototype.isASCII = function (e, t) {
-        for (var r = e; r < t; ++r) {
-          var n = this.get(r);
-          if (n < 32 || n > 176) return !1;
-        }
-        return !0;
-      }, e.prototype.parseStringISO = function (e, t) {
-        for (var r = "", n = e; n < t; ++n) r += String.fromCharCode(this.get(n));
-        return r;
-      }, e.prototype.parseStringUTF = function (e, t) {
-        for (var r = "", n = e; n < t;) {
-          var i = this.get(n++);
-          r += i < 128 ? String.fromCharCode(i) : i > 191 && i < 224 ? String.fromCharCode((31 & i) << 6 | 63 & this.get(n++)) : String.fromCharCode((15 & i) << 12 | (63 & this.get(n++)) << 6 | 63 & this.get(n++));
-        }
-        return r;
-      }, e.prototype.parseStringBMP = function (e, t) {
-        for (var r, n, i = "", s = e; s < t;) r = this.get(s++), n = this.get(s++), i += String.fromCharCode(r << 8 | n);
-        return i;
-      }, e.prototype.parseTime = function (e, t, r) {
-        var n = this.parseStringISO(e, t),
-          i = (r ? S : T).exec(n);
-        return i ? (r && (i[1] = +i[1], i[1] += +i[1] < 70 ? 2000 : 1900), n = i[1] + "-" + i[2] + "-" + i[3] + " " + i[4], i[5] && (n += ":" + i[5], i[6] && (n += ":" + i[6], i[7] && (n += "." + i[7]))), i[8] && (n += " UTC", "Z" != i[8] && (n += i[8], i[9] && (n += ":" + i[9]))), n) : "Unrecognized time: " + n;
-      }, e.prototype.parseInteger = function (e, t) {
-        for (var r, n = this.get(e), i = n > 127, s = i ? 255 : 0, o = ""; n == s && ++e < t;) n = this.get(e);
-        if (0 === (r = t - e)) return i ? -1 : 0;
-        if (r > 4) {
-          for (o = n, r <<= 3; 0 == (128 & (+o ^ s));) o = +o << 1, --r;
-          o = "(" + r + " bit)\n";
-        }
-        i && (n -= 256);
-        for (var a = new w(n), l = e + 1; l < t; ++l) a.mulAdd(256, this.get(l));
-        return o + a.toString();
-      }, e.prototype.parseBitString = function (e, t, r) {
-        for (var n = this.get(e), i = "(" + ((t - e - 1 << 3) - n) + " bit)\n", s = "", o = e + 1; o < t; ++o) {
-          for (var a = this.get(o), l = o == t - 1 ? n : 0, c = 7; c >= l; --c) s += a >> c & 1 ? "1" : "0";
-          if (s.length > r) return i + x(s, r);
-        }
-        return i + s;
-      }, e.prototype.parseOctetString = function (e, t, r) {
-        if (this.isASCII(e, t)) return x(this.parseStringISO(e, t), r);
-        var n = t - e,
-          i = "(" + n + " byte)\n";
-        n > (r /= 2) && (t = e + r);
-        for (var s = e; s < t; ++s) i += this.hexByte(this.get(s));
-        return n > r && (i += "\u2026"), i;
-      }, e.prototype.parseOID = function (e, t, r) {
-        for (var n = "", i = new w(), s = 0, o = e; o < t; ++o) {
-          var a = this.get(o);
-          if (i.mulAdd(128, 127 & a), s += 7, !(128 & a)) {
-            if ("" === n) {
-              if ((i = i.simplify()) instanceof w) i.sub(80), n = "2." + i.toString();else {
-                var l = i < 80 ? i < 40 ? 0 : 1 : 2;
-                n = l + "." + (i - 40 * l);
-              }
-            } else n += "." + i.toString();
-            if (n.length > r) return x(n, r);
-            i = new w(), s = 0;
-          }
-        }
-        return s > 0 && (n += ".incomplete"), n;
-      }, e;
-    }(),
-    M = function () {
-      function e(e, t, r, n, i) {
-        if (!(n instanceof P)) throw new Error("Invalid tag value.");
-        this.stream = e, this.header = t, this.length = r, this.tag = n, this.sub = i;
-      }
-      return e.prototype.typeName = function () {
-        switch (this.tag.tagClass) {
-          case 0:
-            switch (this.tag.tagNumber) {
-              case 0:
-                return "EOC";
-              case 1:
-                return "BOOLEAN";
-              case 2:
-                return "INTEGER";
-              case 3:
-                return "BIT_STRING";
-              case 4:
-                return "OCTET_STRING";
-              case 5:
-                return "NULL";
-              case 6:
-                return "OBJECT_IDENTIFIER";
-              case 7:
-                return "ObjectDescriptor";
-              case 8:
-                return "EXTERNAL";
-              case 9:
-                return "REAL";
-              case 10:
-                return "ENUMERATED";
-              case 11:
-                return "EMBEDDED_PDV";
-              case 12:
-                return "UTF8String";
-              case 16:
-                return "SEQUENCE";
-              case 17:
-                return "SET";
-              case 18:
-                return "NumericString";
-              case 19:
-                return "PrintableString";
-              case 20:
-                return "TeletexString";
-              case 21:
-                return "VideotexString";
-              case 22:
-                return "IA5String";
-              case 23:
-                return "UTCTime";
-              case 24:
-                return "GeneralizedTime";
-              case 25:
-                return "GraphicString";
-              case 26:
-                return "VisibleString";
-              case 27:
-                return "GeneralString";
-              case 28:
-                return "UniversalString";
-              case 30:
-                return "BMPString";
-            }
-            return "Universal_" + this.tag.tagNumber.toString();
-          case 1:
-            return "Application_" + this.tag.tagNumber.toString();
-          case 2:
-            return "[" + this.tag.tagNumber.toString() + "]";
-          case 3:
-            return "Private_" + this.tag.tagNumber.toString();
-        }
-      }, e.prototype.content = function (e) {
-        if (void 0 === this.tag) return null;
-        void 0 === e && (e = Infinity);
-        var t = this.posContent(),
-          r = Math.abs(this.length);
-        if (!this.tag.isUniversal()) return null !== this.sub ? "(" + this.sub.length + " elem)" : this.stream.parseOctetString(t, t + r, e);
-        switch (this.tag.tagNumber) {
-          case 1:
-            return 0 === this.stream.get(t) ? "false" : "true";
-          case 2:
-            return this.stream.parseInteger(t, t + r);
-          case 3:
-            return this.sub ? "(" + this.sub.length + " elem)" : this.stream.parseBitString(t, t + r, e);
-          case 4:
-            return this.sub ? "(" + this.sub.length + " elem)" : this.stream.parseOctetString(t, t + r, e);
-          case 6:
-            return this.stream.parseOID(t, t + r, e);
-          case 16:
-          case 17:
-            return null !== this.sub ? "(" + this.sub.length + " elem)" : "(no elem)";
-          case 12:
-            return x(this.stream.parseStringUTF(t, t + r), e);
-          case 18:
-          case 19:
-          case 20:
-          case 21:
-          case 22:
-          case 26:
-            return x(this.stream.parseStringISO(t, t + r), e);
-          case 30:
-            return x(this.stream.parseStringBMP(t, t + r), e);
-          case 23:
-          case 24:
-            return this.stream.parseTime(t, t + r, 23 == this.tag.tagNumber);
-        }
-        return null;
-      }, e.prototype.toString = function () {
-        return this.typeName() + "@" + this.stream.pos + "[header:" + this.header + ",length:" + this.length + ",sub:" + (null === this.sub ? "null" : this.sub.length) + "]";
-      }, e.prototype.toPrettyString = function (e) {
-        void 0 === e && (e = "");
-        var t = e + this.typeName() + " @" + this.stream.pos;
-        if (this.length >= 0 && (t += "+"), t += this.length, this.tag.tagConstructed ? t += " (constructed)" : !this.tag.isUniversal() || 3 != this.tag.tagNumber && 4 != this.tag.tagNumber || null === this.sub || (t += " (encapsulates)"), t += "\n", null !== this.sub) {
-          e += "  ";
-          for (var r = 0, n = this.sub.length; r < n; ++r) t += this.sub[r].toPrettyString(e);
-        }
-        return t;
-      }, e.prototype.posStart = function () {
-        return this.stream.pos;
-      }, e.prototype.posContent = function () {
-        return this.stream.pos + this.header;
-      }, e.prototype.posEnd = function () {
-        return this.stream.pos + this.header + Math.abs(this.length);
-      }, e.prototype.toHexString = function () {
-        return this.stream.hexDump(this.posStart(), this.posEnd(), !0);
-      }, e.decodeLength = function (e) {
-        var t = e.get(),
-          r = 127 & t;
-        if (r == t) return r;
-        if (r > 6) throw new Error("Length over 48 bits not supported at position " + (e.pos - 1));
-        if (0 === r) return null;
-        t = 0;
-        for (var n = 0; n < r; ++n) t = 256 * t + e.get();
-        return t;
-      }, e.prototype.getHexStringValue = function () {
-        var e = this.toHexString(),
-          t = 2 * this.header,
-          r = 2 * this.length;
-        return e.substr(t, r);
-      }, e.decode = function (t) {
-        var r;
-        r = t instanceof O ? t : new O(t, 0);
-        var n = new O(r),
-          i = new P(r),
-          s = e.decodeLength(r),
-          o = r.pos,
-          a = o - n.pos,
-          l = null,
-          c = function () {
-            var t = [];
-            if (null !== s) {
-              for (var n = o + s; r.pos < n;) t[t.length] = e.decode(r);
-              if (r.pos != n) throw new Error("Content size is not correct for container starting at offset " + o);
-            } else try {
-              for (;;) {
-                var i = e.decode(r);
-                if (i.tag.isEOC()) break;
-                t[t.length] = i;
-              }
-              s = o - r.pos;
-            } catch (a) {
-              throw new Error("Exception while decoding undefined length content: " + a);
-            }
-            return t;
-          };
-        if (i.tagConstructed) l = c();else if (i.isUniversal() && (3 == i.tagNumber || 4 == i.tagNumber)) try {
-          if (3 == i.tagNumber && 0 != r.get()) throw new Error("BIT STRINGs with unused bits cannot encapsulate.");
-          l = c();
-          for (var u = 0; u < l.length; ++u) if (l[u].tag.isEOC()) throw new Error("EOC is not supposed to be actual content.");
-        } catch (d) {
-          l = null;
-        }
-        if (null === l) {
-          if (null === s) throw new Error("We can't skip over an invalid tag with undefined length at offset " + o);
-          r.pos = o + Math.abs(s);
-        }
-        return new e(n, a, s, i, l);
-      }, e;
-    }(),
-    P = function () {
-      function e(e) {
-        var t = e.get();
-        if (this.tagClass = t >> 6, this.tagConstructed = 0 !== (32 & t), this.tagNumber = 31 & t, 31 == this.tagNumber) {
-          var r = new w();
-          do {
-            t = e.get(), r.mulAdd(128, 127 & t);
-          } while (128 & t);
-          this.tagNumber = r.simplify();
-        }
-      }
-      return e.prototype.isUniversal = function () {
-        return 0 === this.tagClass;
-      }, e.prototype.isEOC = function () {
-        return 0 === this.tagClass && 0 === this.tagNumber;
-      }, e;
-    }(),
-    _ = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997],
-    A = 67108864 / _[_.length - 1],
-    C = function () {
-      function e(e, t, r) {
-        null != e && ("number" == typeof e ? this.fromNumber(e, t, r) : null == t && "string" != typeof e ? this.fromString(e, 256) : this.fromString(e, t));
-      }
-      return e.prototype.toString = function (e) {
-        if (this.s < 0) return "-" + this.negate().toString(e);
-        var t;
-        if (16 == e) t = 4;else if (8 == e) t = 3;else if (2 == e) t = 1;else if (32 == e) t = 5;else {
-          if (4 != e) return this.toRadix(e);
-          t = 2;
-        }
-        var r,
-          n = (1 << t) - 1,
-          s = !1,
-          o = "",
-          a = this.t,
-          l = this.DB - a * this.DB % t;
-        if (a-- > 0) for (l < this.DB && (r = this[a] >> l) > 0 && (s = !0, o = i(r)); a >= 0;) l < t ? (r = (this[a] & (1 << l) - 1) << t - l, r |= this[--a] >> (l += this.DB - t)) : (r = this[a] >> (l -= t) & n, l <= 0 && (l += this.DB, --a)), r > 0 && (s = !0), s && (o += i(r));
-        return s ? o : "0";
-      }, e.prototype.negate = function () {
-        var t = B();
-        return e.ZERO.subTo(this, t), t;
-      }, e.prototype.abs = function () {
-        return this.s < 0 ? this.negate() : this;
-      }, e.prototype.compareTo = function (e) {
-        var t = this.s - e.s;
-        if (0 != t) return t;
-        var r = this.t;
-        if (0 != (t = r - e.t)) return this.s < 0 ? -t : t;
-        for (; --r >= 0;) if (0 != (t = this[r] - e[r])) return t;
-        return 0;
-      }, e.prototype.bitLength = function () {
-        return this.t <= 0 ? 0 : this.DB * (this.t - 1) + G(this[this.t - 1] ^ this.s & this.DM);
-      }, e.prototype.mod = function (t) {
-        var r = B();
-        return this.abs().divRemTo(t, null, r), this.s < 0 && r.compareTo(e.ZERO) > 0 && t.subTo(r, r), r;
-      }, e.prototype.modPowInt = function (e, t) {
-        var r;
-        return r = e < 256 || t.isEven() ? new I(t) : new R(t), this.exp(e, r);
-      }, e.prototype.clone = function () {
-        var e = B();
-        return this.copyTo(e), e;
-      }, e.prototype.intValue = function () {
-        if (this.s < 0) {
-          if (1 == this.t) return this[0] - this.DV;
-          if (0 == this.t) return -1;
-        } else {
-          if (1 == this.t) return this[0];
-          if (0 == this.t) return 0;
-        }
-        return (this[1] & (1 << 32 - this.DB) - 1) << this.DB | this[0];
-      }, e.prototype.byteValue = function () {
-        return 0 == this.t ? this.s : this[0] << 24 >> 24;
-      }, e.prototype.shortValue = function () {
-        return 0 == this.t ? this.s : this[0] << 16 >> 16;
-      }, e.prototype.signum = function () {
-        return this.s < 0 ? -1 : this.t <= 0 || 1 == this.t && this[0] <= 0 ? 0 : 1;
-      }, e.prototype.toByteArray = function () {
-        var e = this.t,
-          t = [];
-        t[0] = this.s;
-        var r,
-          n = this.DB - e * this.DB % 8,
-          i = 0;
-        if (e-- > 0) for (n < this.DB && (r = this[e] >> n) != (this.s & this.DM) >> n && (t[i++] = r | this.s << this.DB - n); e >= 0;) n < 8 ? (r = (this[e] & (1 << n) - 1) << 8 - n, r |= this[--e] >> (n += this.DB - 8)) : (r = this[e] >> (n -= 8) & 255, n <= 0 && (n += this.DB, --e)), 0 != (128 & r) && (r |= -256), 0 == i && (128 & this.s) != (128 & r) && ++i, (i > 0 || r != this.s) && (t[i++] = r);
-        return t;
-      }, e.prototype.equals = function (e) {
-        return 0 == this.compareTo(e);
-      }, e.prototype.min = function (e) {
-        return this.compareTo(e) < 0 ? this : e;
-      }, e.prototype.max = function (e) {
-        return this.compareTo(e) > 0 ? this : e;
-      }, e.prototype.and = function (e) {
-        var t = B();
-        return this.bitwiseTo(e, s, t), t;
-      }, e.prototype.or = function (e) {
-        var t = B();
-        return this.bitwiseTo(e, o, t), t;
-      }, e.prototype.xor = function (e) {
-        var t = B();
-        return this.bitwiseTo(e, a, t), t;
-      }, e.prototype.andNot = function (e) {
-        var t = B();
-        return this.bitwiseTo(e, l, t), t;
-      }, e.prototype.not = function () {
-        for (var e = B(), t = 0; t < this.t; ++t) e[t] = this.DM & ~this[t];
-        return e.t = this.t, e.s = ~this.s, e;
-      }, e.prototype.shiftLeft = function (e) {
-        var t = B();
-        return e < 0 ? this.rShiftTo(-e, t) : this.lShiftTo(e, t), t;
-      }, e.prototype.shiftRight = function (e) {
-        var t = B();
-        return e < 0 ? this.lShiftTo(-e, t) : this.rShiftTo(e, t), t;
-      }, e.prototype.getLowestSetBit = function () {
-        for (var e = 0; e < this.t; ++e) if (0 != this[e]) return e * this.DB + c(this[e]);
-        return this.s < 0 ? this.t * this.DB : -1;
-      }, e.prototype.bitCount = function () {
-        for (var e = 0, t = this.s & this.DM, r = 0; r < this.t; ++r) e += u(this[r] ^ t);
-        return e;
-      }, e.prototype.testBit = function (e) {
-        var t = Math.floor(e / this.DB);
-        return t >= this.t ? 0 != this.s : 0 != (this[t] & 1 << e % this.DB);
-      }, e.prototype.setBit = function (e) {
-        return this.changeBit(e, o);
-      }, e.prototype.clearBit = function (e) {
-        return this.changeBit(e, l);
-      }, e.prototype.flipBit = function (e) {
-        return this.changeBit(e, a);
-      }, e.prototype.add = function (e) {
-        var t = B();
-        return this.addTo(e, t), t;
-      }, e.prototype.subtract = function (e) {
-        var t = B();
-        return this.subTo(e, t), t;
-      }, e.prototype.multiply = function (e) {
-        var t = B();
-        return this.multiplyTo(e, t), t;
-      }, e.prototype.divide = function (e) {
-        var t = B();
-        return this.divRemTo(e, t, null), t;
-      }, e.prototype.remainder = function (e) {
-        var t = B();
-        return this.divRemTo(e, null, t), t;
-      }, e.prototype.divideAndRemainder = function (e) {
-        var t = B(),
-          r = B();
-        return this.divRemTo(e, t, r), [t, r];
-      }, e.prototype.modPow = function (e, t) {
-        var r,
-          n,
-          i = e.bitLength(),
-          s = H(1);
-        if (i <= 0) return s;
-        r = i < 18 ? 1 : i < 48 ? 3 : i < 144 ? 4 : i < 768 ? 5 : 6, n = i < 8 ? new I(t) : t.isEven() ? new L(t) : new R(t);
-        var o = [],
-          a = 3,
-          l = r - 1,
-          c = (1 << r) - 1;
-        if (o[1] = n.convert(this), r > 1) {
-          var u = B();
-          for (n.sqrTo(o[1], u); a <= c;) o[a] = B(), n.mulTo(u, o[a - 2], o[a]), a += 2;
-        }
-        var d,
-          p,
-          f = e.t - 1,
-          h = !0,
-          g = B();
-        for (i = G(e[f]) - 1; f >= 0;) {
-          for (i >= l ? d = e[f] >> i - l & c : (d = (e[f] & (1 << i + 1) - 1) << l - i, f > 0 && (d |= e[f - 1] >> this.DB + i - l)), a = r; 0 == (1 & d);) d >>= 1, --a;
-          if ((i -= a) < 0 && (i += this.DB, --f), h) o[d].copyTo(s), h = !1;else {
-            for (; a > 1;) n.sqrTo(s, g), n.sqrTo(g, s), a -= 2;
-            a > 0 ? n.sqrTo(s, g) : (p = s, s = g, g = p), n.mulTo(g, o[d], s);
-          }
-          for (; f >= 0 && 0 == (e[f] & 1 << i);) n.sqrTo(s, g), p = s, s = g, g = p, --i < 0 && (i = this.DB - 1, --f);
-        }
-        return n.revert(s);
-      }, e.prototype.modInverse = function (t) {
-        var r = t.isEven();
-        if (this.isEven() && r || 0 == t.signum()) return e.ZERO;
-        for (var n = t.clone(), i = this.clone(), s = H(1), o = H(0), a = H(0), l = H(1); 0 != n.signum();) {
-          for (; n.isEven();) n.rShiftTo(1, n), r ? (s.isEven() && o.isEven() || (s.addTo(this, s), o.subTo(t, o)), s.rShiftTo(1, s)) : o.isEven() || o.subTo(t, o), o.rShiftTo(1, o);
-          for (; i.isEven();) i.rShiftTo(1, i), r ? (a.isEven() && l.isEven() || (a.addTo(this, a), l.subTo(t, l)), a.rShiftTo(1, a)) : l.isEven() || l.subTo(t, l), l.rShiftTo(1, l);
-          n.compareTo(i) >= 0 ? (n.subTo(i, n), r && s.subTo(a, s), o.subTo(l, o)) : (i.subTo(n, i), r && a.subTo(s, a), l.subTo(o, l));
-        }
-        return 0 != i.compareTo(e.ONE) ? e.ZERO : l.compareTo(t) >= 0 ? l.subtract(t) : l.signum() < 0 ? (l.addTo(t, l), l.signum() < 0 ? l.add(t) : l) : l;
-      }, e.prototype.pow = function (e) {
-        return this.exp(e, new D());
-      }, e.prototype.gcd = function (e) {
-        var t = this.s < 0 ? this.negate() : this.clone(),
-          r = e.s < 0 ? e.negate() : e.clone();
-        if (t.compareTo(r) < 0) {
-          var n = t;
-          t = r, r = n;
-        }
-        var i = t.getLowestSetBit(),
-          s = r.getLowestSetBit();
-        if (s < 0) return t;
-        for (i < s && (s = i), s > 0 && (t.rShiftTo(s, t), r.rShiftTo(s, r)); t.signum() > 0;) (i = t.getLowestSetBit()) > 0 && t.rShiftTo(i, t), (i = r.getLowestSetBit()) > 0 && r.rShiftTo(i, r), t.compareTo(r) >= 0 ? (t.subTo(r, t), t.rShiftTo(1, t)) : (r.subTo(t, r), r.rShiftTo(1, r));
-        return s > 0 && r.lShiftTo(s, r), r;
-      }, e.prototype.isProbablePrime = function (e) {
-        var t,
-          r = this.abs();
-        if (1 == r.t && r[0] <= _[_.length - 1]) {
-          for (t = 0; t < _.length; ++t) if (r[0] == _[t]) return !0;
-          return !1;
-        }
-        if (r.isEven()) return !1;
-        for (t = 1; t < _.length;) {
-          for (var n = _[t], i = t + 1; i < _.length && n < A;) n *= _[i++];
-          for (n = r.modInt(n); t < i;) if (n % _[t++] == 0) return !1;
-        }
-        return r.millerRabin(e);
-      }, e.prototype.copyTo = function (e) {
-        for (var t = this.t - 1; t >= 0; --t) e[t] = this[t];
-        e.t = this.t, e.s = this.s;
-      }, e.prototype.fromInt = function (e) {
-        this.t = 1, this.s = e < 0 ? -1 : 0, e > 0 ? this[0] = e : e < -1 ? this[0] = e + this.DV : this.t = 0;
-      }, e.prototype.fromString = function (t, r) {
-        var n;
-        if (16 == r) n = 4;else if (8 == r) n = 3;else if (256 == r) n = 8;else if (2 == r) n = 1;else if (32 == r) n = 5;else {
-          if (4 != r) return void this.fromRadix(t, r);
-          n = 2;
-        }
-        this.t = 0, this.s = 0;
-        for (var i = t.length, s = !1, o = 0; --i >= 0;) {
-          var a = 8 == n ? 255 & +t[i] : z(t, i);
-          a < 0 ? "-" == t.charAt(i) && (s = !0) : (s = !1, 0 == o ? this[this.t++] = a : o + n > this.DB ? (this[this.t - 1] |= (a & (1 << this.DB - o) - 1) << o, this[this.t++] = a >> this.DB - o) : this[this.t - 1] |= a << o, (o += n) >= this.DB && (o -= this.DB));
-        }
-        8 == n && 0 != (128 & +t[0]) && (this.s = -1, o > 0 && (this[this.t - 1] |= (1 << this.DB - o) - 1 << o)), this.clamp(), s && e.ZERO.subTo(this, this);
-      }, e.prototype.clamp = function () {
-        for (var e = this.s & this.DM; this.t > 0 && this[this.t - 1] == e;) --this.t;
-      }, e.prototype.dlShiftTo = function (e, t) {
-        var r;
-        for (r = this.t - 1; r >= 0; --r) t[r + e] = this[r];
-        for (r = e - 1; r >= 0; --r) t[r] = 0;
-        t.t = this.t + e, t.s = this.s;
-      }, e.prototype.drShiftTo = function (e, t) {
-        for (var r = e; r < this.t; ++r) t[r - e] = this[r];
-        t.t = Math.max(this.t - e, 0), t.s = this.s;
-      }, e.prototype.lShiftTo = function (e, t) {
-        for (var r = e % this.DB, n = this.DB - r, i = (1 << n) - 1, s = Math.floor(e / this.DB), o = this.s << r & this.DM, a = this.t - 1; a >= 0; --a) t[a + s + 1] = this[a] >> n | o, o = (this[a] & i) << r;
-        for (a = s - 1; a >= 0; --a) t[a] = 0;
-        t[s] = o, t.t = this.t + s + 1, t.s = this.s, t.clamp();
-      }, e.prototype.rShiftTo = function (e, t) {
-        t.s = this.s;
-        var r = Math.floor(e / this.DB);
-        if (r >= this.t) t.t = 0;else {
-          var n = e % this.DB,
-            i = this.DB - n,
-            s = (1 << n) - 1;
-          t[0] = this[r] >> n;
-          for (var o = r + 1; o < this.t; ++o) t[o - r - 1] |= (this[o] & s) << i, t[o - r] = this[o] >> n;
-          n > 0 && (t[this.t - r - 1] |= (this.s & s) << i), t.t = this.t - r, t.clamp();
-        }
-      }, e.prototype.subTo = function (e, t) {
-        for (var r = 0, n = 0, i = Math.min(e.t, this.t); r < i;) n += this[r] - e[r], t[r++] = n & this.DM, n >>= this.DB;
-        if (e.t < this.t) {
-          for (n -= e.s; r < this.t;) n += this[r], t[r++] = n & this.DM, n >>= this.DB;
-          n += this.s;
-        } else {
-          for (n += this.s; r < e.t;) n -= e[r], t[r++] = n & this.DM, n >>= this.DB;
-          n -= e.s;
-        }
-        t.s = n < 0 ? -1 : 0, n < -1 ? t[r++] = this.DV + n : n > 0 && (t[r++] = n), t.t = r, t.clamp();
-      }, e.prototype.multiplyTo = function (t, r) {
-        var n = this.abs(),
-          i = t.abs(),
-          s = n.t;
-        for (r.t = s + i.t; --s >= 0;) r[s] = 0;
-        for (s = 0; s < i.t; ++s) r[s + n.t] = n.am(0, i[s], r, s, 0, n.t);
-        r.s = 0, r.clamp(), this.s != t.s && e.ZERO.subTo(r, r);
-      }, e.prototype.squareTo = function (e) {
-        for (var t = this.abs(), r = e.t = 2 * t.t; --r >= 0;) e[r] = 0;
-        for (r = 0; r < t.t - 1; ++r) {
-          var n = t.am(r, t[r], e, 2 * r, 0, 1);
-          (e[r + t.t] += t.am(r + 1, 2 * t[r], e, 2 * r + 1, n, t.t - r - 1)) >= t.DV && (e[r + t.t] -= t.DV, e[r + t.t + 1] = 1);
-        }
-        e.t > 0 && (e[e.t - 1] += t.am(r, t[r], e, 2 * r, 0, 1)), e.s = 0, e.clamp();
-      }, e.prototype.divRemTo = function (t, r, n) {
-        var i = t.abs();
-        if (!(i.t <= 0)) {
-          var s = this.abs();
-          if (s.t < i.t) return null != r && r.fromInt(0), void (null != n && this.copyTo(n));
-          null == n && (n = B());
-          var o = B(),
-            a = this.s,
-            l = t.s,
-            c = this.DB - G(i[i.t - 1]);
-          c > 0 ? (i.lShiftTo(c, o), s.lShiftTo(c, n)) : (i.copyTo(o), s.copyTo(n));
-          var u = o.t,
-            d = o[u - 1];
-          if (0 != d) {
-            var p = d * (1 << this.F1) + (u > 1 ? o[u - 2] >> this.F2 : 0),
-              f = this.FV / p,
-              h = (1 << this.F1) / p,
-              g = 1 << this.F2,
-              m = n.t,
-              v = m - u,
-              y = null == r ? B() : r;
-            for (o.dlShiftTo(v, y), n.compareTo(y) >= 0 && (n[n.t++] = 1, n.subTo(y, n)), e.ONE.dlShiftTo(u, y), y.subTo(o, o); o.t < u;) o[o.t++] = 0;
-            for (; --v >= 0;) {
-              var b = n[--m] == d ? this.DM : Math.floor(n[m] * f + (n[m - 1] + g) * h);
-              if ((n[m] += o.am(0, b, n, v, 0, u)) < b) for (o.dlShiftTo(v, y), n.subTo(y, n); n[m] < --b;) n.subTo(y, n);
-            }
-            null != r && (n.drShiftTo(u, r), a != l && e.ZERO.subTo(r, r)), n.t = u, n.clamp(), c > 0 && n.rShiftTo(c, n), a < 0 && e.ZERO.subTo(n, n);
-          }
-        }
-      }, e.prototype.invDigit = function () {
-        if (this.t < 1) return 0;
-        var e = this[0];
-        if (0 == (1 & e)) return 0;
-        var t = 3 & e;
-        return (t = (t = (t = (t = t * (2 - (15 & e) * t) & 15) * (2 - (255 & e) * t) & 255) * (2 - ((65535 & e) * t & 65535)) & 65535) * (2 - e * t % this.DV) % this.DV) > 0 ? this.DV - t : -t;
-      }, e.prototype.isEven = function () {
-        return 0 == (this.t > 0 ? 1 & this[0] : this.s);
-      }, e.prototype.exp = function (t, r) {
-        if (t > 4294967295 || t < 1) return e.ONE;
-        var n = B(),
-          i = B(),
-          s = r.convert(this),
-          o = G(t) - 1;
-        for (s.copyTo(n); --o >= 0;) if (r.sqrTo(n, i), (t & 1 << o) > 0) r.mulTo(i, s, n);else {
-          var a = n;
-          n = i, i = a;
-        }
-        return r.revert(n);
-      }, e.prototype.chunkSize = function (e) {
-        return Math.floor(Math.LN2 * this.DB / Math.log(e));
-      }, e.prototype.toRadix = function (e) {
-        if (null == e && (e = 10), 0 == this.signum() || e < 2 || e > 36) return "0";
-        var t = this.chunkSize(e),
-          r = Math.pow(e, t),
-          n = H(r),
-          i = B(),
-          s = B(),
-          o = "";
-        for (this.divRemTo(n, i, s); i.signum() > 0;) o = (r + s.intValue()).toString(e).substr(1) + o, i.divRemTo(n, i, s);
-        return s.intValue().toString(e) + o;
-      }, e.prototype.fromRadix = function (t, r) {
-        this.fromInt(0), null == r && (r = 10);
-        for (var n = this.chunkSize(r), i = Math.pow(r, n), s = !1, o = 0, a = 0, l = 0; l < t.length; ++l) {
-          var c = z(t, l);
-          c < 0 ? "-" == t.charAt(l) && 0 == this.signum() && (s = !0) : (a = r * a + c, ++o >= n && (this.dMultiply(i), this.dAddOffset(a, 0), o = 0, a = 0));
-        }
-        o > 0 && (this.dMultiply(Math.pow(r, o)), this.dAddOffset(a, 0)), s && e.ZERO.subTo(this, this);
-      }, e.prototype.fromNumber = function (t, r, n) {
-        if ("number" == typeof r) {
-          if (t < 2) this.fromInt(1);else for (this.fromNumber(t, n), this.testBit(t - 1) || this.bitwiseTo(e.ONE.shiftLeft(t - 1), o, this), this.isEven() && this.dAddOffset(1, 0); !this.isProbablePrime(r);) this.dAddOffset(2, 0), this.bitLength() > t && this.subTo(e.ONE.shiftLeft(t - 1), this);
-        } else {
-          var i = [],
-            s = 7 & t;
-          i.length = 1 + (t >> 3), r.nextBytes(i), s > 0 ? i[0] &= (1 << s) - 1 : i[0] = 0, this.fromString(i, 256);
-        }
-      }, e.prototype.bitwiseTo = function (e, t, r) {
-        var n,
-          i,
-          s = Math.min(e.t, this.t);
-        for (n = 0; n < s; ++n) r[n] = t(this[n], e[n]);
-        if (e.t < this.t) {
-          for (i = e.s & this.DM, n = s; n < this.t; ++n) r[n] = t(this[n], i);
-          r.t = this.t;
-        } else {
-          for (i = this.s & this.DM, n = s; n < e.t; ++n) r[n] = t(i, e[n]);
-          r.t = e.t;
-        }
-        r.s = t(this.s, e.s), r.clamp();
-      }, e.prototype.changeBit = function (t, r) {
-        var n = e.ONE.shiftLeft(t);
-        return this.bitwiseTo(n, r, n), n;
-      }, e.prototype.addTo = function (e, t) {
-        for (var r = 0, n = 0, i = Math.min(e.t, this.t); r < i;) n += this[r] + e[r], t[r++] = n & this.DM, n >>= this.DB;
-        if (e.t < this.t) {
-          for (n += e.s; r < this.t;) n += this[r], t[r++] = n & this.DM, n >>= this.DB;
-          n += this.s;
-        } else {
-          for (n += this.s; r < e.t;) n += e[r], t[r++] = n & this.DM, n >>= this.DB;
-          n += e.s;
-        }
-        t.s = n < 0 ? -1 : 0, n > 0 ? t[r++] = n : n < -1 && (t[r++] = this.DV + n), t.t = r, t.clamp();
-      }, e.prototype.dMultiply = function (e) {
-        this[this.t] = this.am(0, e - 1, this, 0, 0, this.t), ++this.t, this.clamp();
-      }, e.prototype.dAddOffset = function (e, t) {
-        if (0 != e) {
-          for (; this.t <= t;) this[this.t++] = 0;
-          for (this[t] += e; this[t] >= this.DV;) this[t] -= this.DV, ++t >= this.t && (this[this.t++] = 0), ++this[t];
-        }
-      }, e.prototype.multiplyLowerTo = function (e, t, r) {
-        var n = Math.min(this.t + e.t, t);
-        for (r.s = 0, r.t = n; n > 0;) r[--n] = 0;
-        for (var i = r.t - this.t; n < i; ++n) r[n + this.t] = this.am(0, e[n], r, n, 0, this.t);
-        for (i = Math.min(e.t, t); n < i; ++n) this.am(0, e[n], r, n, 0, t - n);
-        r.clamp();
-      }, e.prototype.multiplyUpperTo = function (e, t, r) {
-        --t;
-        var n = r.t = this.t + e.t - t;
-        for (r.s = 0; --n >= 0;) r[n] = 0;
-        for (n = Math.max(t - this.t, 0); n < e.t; ++n) r[this.t + n - t] = this.am(t - n, e[n], r, 0, 0, this.t + n - t);
-        r.clamp(), r.drShiftTo(1, r);
-      }, e.prototype.modInt = function (e) {
-        if (e <= 0) return 0;
-        var t = this.DV % e,
-          r = this.s < 0 ? e - 1 : 0;
-        if (this.t > 0) if (0 == t) r = this[0] % e;else for (var n = this.t - 1; n >= 0; --n) r = (t * r + this[n]) % e;
-        return r;
-      }, e.prototype.millerRabin = function (t) {
-        var r = this.subtract(e.ONE),
-          n = r.getLowestSetBit();
-        if (n <= 0) return !1;
-        var i = r.shiftRight(n);
-        (t = t + 1 >> 1) > _.length && (t = _.length);
-        for (var s = B(), o = 0; o < t; ++o) {
-          s.fromInt(_[Math.floor(Math.random() * _.length)]);
-          var a = s.modPow(i, this);
-          if (0 != a.compareTo(e.ONE) && 0 != a.compareTo(r)) {
-            for (var l = 1; l++ < n && 0 != a.compareTo(r);) if (0 == (a = a.modPowInt(2, this)).compareTo(e.ONE)) return !1;
-            if (0 != a.compareTo(r)) return !1;
-          }
-        }
-        return !0;
-      }, e.prototype.square = function () {
-        var e = B();
-        return this.squareTo(e), e;
-      }, e.prototype.gcda = function (e, t) {
-        var r = this.s < 0 ? this.negate() : this.clone(),
-          n = e.s < 0 ? e.negate() : e.clone();
-        if (r.compareTo(n) < 0) {
-          var i = r;
-          r = n, n = i;
-        }
-        var s = r.getLowestSetBit(),
-          o = n.getLowestSetBit();
-        if (o < 0) t(r);else {
-          s < o && (o = s), o > 0 && (r.rShiftTo(o, r), n.rShiftTo(o, n));
-          var a = function () {
-            (s = r.getLowestSetBit()) > 0 && r.rShiftTo(s, r), (s = n.getLowestSetBit()) > 0 && n.rShiftTo(s, n), r.compareTo(n) >= 0 ? (r.subTo(n, r), r.rShiftTo(1, r)) : (n.subTo(r, n), n.rShiftTo(1, n)), r.signum() > 0 ? setTimeout(a, 0) : (o > 0 && n.lShiftTo(o, n), setTimeout(function () {
-              t(n);
-            }, 0));
-          };
-          setTimeout(a, 10);
-        }
-      }, e.prototype.fromNumberAsync = function (t, r, n, i) {
-        if ("number" == typeof r) {
-          if (t < 2) this.fromInt(1);else {
-            this.fromNumber(t, n), this.testBit(t - 1) || this.bitwiseTo(e.ONE.shiftLeft(t - 1), o, this), this.isEven() && this.dAddOffset(1, 0);
-            var s = this,
-              a = function () {
-                s.dAddOffset(2, 0), s.bitLength() > t && s.subTo(e.ONE.shiftLeft(t - 1), s), s.isProbablePrime(r) ? setTimeout(function () {
-                  i();
-                }, 0) : setTimeout(a, 0);
-              };
-            setTimeout(a, 0);
-          }
-        } else {
-          var l = [],
-            c = 7 & t;
-          l.length = 1 + (t >> 3), r.nextBytes(l), c > 0 ? l[0] &= (1 << c) - 1 : l[0] = 0, this.fromString(l, 256);
-        }
-      }, e;
-    }(),
-    D = function () {
-      function e() {}
-      return e.prototype.convert = function (e) {
-        return e;
-      }, e.prototype.revert = function (e) {
-        return e;
-      }, e.prototype.mulTo = function (e, t, r) {
-        e.multiplyTo(t, r);
-      }, e.prototype.sqrTo = function (e, t) {
-        e.squareTo(t);
-      }, e;
-    }(),
-    I = function () {
-      function e(e) {
-        this.m = e;
-      }
-      return e.prototype.convert = function (e) {
-        return e.s < 0 || e.compareTo(this.m) >= 0 ? e.mod(this.m) : e;
-      }, e.prototype.revert = function (e) {
-        return e;
-      }, e.prototype.reduce = function (e) {
-        e.divRemTo(this.m, null, e);
-      }, e.prototype.mulTo = function (e, t, r) {
-        e.multiplyTo(t, r), this.reduce(r);
-      }, e.prototype.sqrTo = function (e, t) {
-        e.squareTo(t), this.reduce(t);
-      }, e;
-    }(),
-    R = function () {
-      function e(e) {
-        this.m = e, this.mp = e.invDigit(), this.mpl = 32767 & this.mp, this.mph = this.mp >> 15, this.um = (1 << e.DB - 15) - 1, this.mt2 = 2 * e.t;
-      }
-      return e.prototype.convert = function (e) {
-        var t = B();
-        return e.abs().dlShiftTo(this.m.t, t), t.divRemTo(this.m, null, t), e.s < 0 && t.compareTo(C.ZERO) > 0 && this.m.subTo(t, t), t;
-      }, e.prototype.revert = function (e) {
-        var t = B();
-        return e.copyTo(t), this.reduce(t), t;
-      }, e.prototype.reduce = function (e) {
-        for (; e.t <= this.mt2;) e[e.t++] = 0;
-        for (var t = 0; t < this.m.t; ++t) {
-          var r = 32767 & e[t],
-            n = r * this.mpl + ((r * this.mph + (e[t] >> 15) * this.mpl & this.um) << 15) & e.DM;
-          for (e[r = t + this.m.t] += this.m.am(0, n, e, t, 0, this.m.t); e[r] >= e.DV;) e[r] -= e.DV, e[++r]++;
-        }
-        e.clamp(), e.drShiftTo(this.m.t, e), e.compareTo(this.m) >= 0 && e.subTo(this.m, e);
-      }, e.prototype.mulTo = function (e, t, r) {
-        e.multiplyTo(t, r), this.reduce(r);
-      }, e.prototype.sqrTo = function (e, t) {
-        e.squareTo(t), this.reduce(t);
-      }, e;
-    }(),
-    L = function () {
-      function e(e) {
-        this.m = e, this.r2 = B(), this.q3 = B(), C.ONE.dlShiftTo(2 * e.t, this.r2), this.mu = this.r2.divide(e);
-      }
-      return e.prototype.convert = function (e) {
-        if (e.s < 0 || e.t > 2 * this.m.t) return e.mod(this.m);
-        if (e.compareTo(this.m) < 0) return e;
-        var t = B();
-        return e.copyTo(t), this.reduce(t), t;
-      }, e.prototype.revert = function (e) {
-        return e;
-      }, e.prototype.reduce = function (e) {
-        for (e.drShiftTo(this.m.t - 1, this.r2), e.t > this.m.t + 1 && (e.t = this.m.t + 1, e.clamp()), this.mu.multiplyUpperTo(this.r2, this.m.t + 1, this.q3), this.m.multiplyLowerTo(this.q3, this.m.t + 1, this.r2); e.compareTo(this.r2) < 0;) e.dAddOffset(1, this.m.t + 1);
-        for (e.subTo(this.r2, e); e.compareTo(this.m) >= 0;) e.subTo(this.m, e);
-      }, e.prototype.mulTo = function (e, t, r) {
-        e.multiplyTo(t, r), this.reduce(r);
-      }, e.prototype.sqrTo = function (e, t) {
-        e.squareTo(t), this.reduce(t);
-      }, e;
-    }();
-  function B() {
-    return new C(null);
-  }
-  function k(e, t) {
-    return new C(e, t);
-  }
-  var j = "undefined" !== typeof navigator;
-  j && "Microsoft Internet Explorer" == navigator.appName ? (C.prototype.am = function (e, t, r, n, i, s) {
-    for (var o = 32767 & t, a = t >> 15; --s >= 0;) {
-      var l = 32767 & this[e],
-        c = this[e++] >> 15,
-        u = a * l + c * o;
-      i = ((l = o * l + ((32767 & u) << 15) + r[n] + (1073741823 & i)) >>> 30) + (u >>> 15) + a * c + (i >>> 30), r[n++] = 1073741823 & l;
-    }
-    return i;
-  }, E = 30) : j && "Netscape" != navigator.appName ? (C.prototype.am = function (e, t, r, n, i, s) {
-    for (; --s >= 0;) {
-      var o = t * this[e++] + r[n] + i;
-      i = Math.floor(o / 67108864), r[n++] = 67108863 & o;
-    }
-    return i;
-  }, E = 26) : (C.prototype.am = function (e, t, r, n, i, s) {
-    for (var o = 16383 & t, a = t >> 14; --s >= 0;) {
-      var l = 16383 & this[e],
-        c = this[e++] >> 14,
-        u = a * l + c * o;
-      i = ((l = o * l + ((16383 & u) << 14) + r[n] + i) >> 28) + (u >> 14) + a * c, r[n++] = 268435455 & l;
-    }
-    return i;
-  }, E = 28), C.prototype.DB = E, C.prototype.DM = (1 << E) - 1, C.prototype.DV = 1 << E;
-  C.prototype.FV = Math.pow(2, 52), C.prototype.F1 = 52 - E, C.prototype.F2 = 2 * E - 52;
-  var N,
-    F,
-    V = [];
-  for (N = "0".charCodeAt(0), F = 0; F <= 9; ++F) V[N++] = F;
-  for (N = "a".charCodeAt(0), F = 10; F < 36; ++F) V[N++] = F;
-  for (N = "A".charCodeAt(0), F = 10; F < 36; ++F) V[N++] = F;
-  function z(e, t) {
-    var r = V[e.charCodeAt(t)];
-    return null == r ? -1 : r;
-  }
-  function H(e) {
-    var t = B();
-    return t.fromInt(e), t;
-  }
-  function G(e) {
-    var t,
-      r = 1;
-    return 0 != (t = e >>> 16) && (e = t, r += 16), 0 != (t = e >> 8) && (e = t, r += 8), 0 != (t = e >> 4) && (e = t, r += 4), 0 != (t = e >> 2) && (e = t, r += 2), 0 != (t = e >> 1) && (e = t, r += 1), r;
-  }
-  C.ZERO = H(0), C.ONE = H(1);
-  var q = function () {
-    function e() {
-      this.i = 0, this.j = 0, this.S = [];
-    }
-    return e.prototype.init = function (e) {
-      var t, r, n;
-      for (t = 0; t < 256; ++t) this.S[t] = t;
-      for (r = 0, t = 0; t < 256; ++t) r = r + this.S[t] + e[t % e.length] & 255, n = this.S[t], this.S[t] = this.S[r], this.S[r] = n;
-      this.i = 0, this.j = 0;
-    }, e.prototype.next = function () {
-      var e;
-      return this.i = this.i + 1 & 255, this.j = this.j + this.S[this.i] & 255, e = this.S[this.i], this.S[this.i] = this.S[this.j], this.S[this.j] = e, this.S[e + this.S[this.i] & 255];
-    }, e;
-  }();
-  var W,
-    U,
-    Y = null;
-  if (null == Y) {
-    Y = [], U = 0;
-    var K = void 0;
-    if ("undefined" !== typeof window && window.crypto && window.crypto.getRandomValues) {
-      var X = new Uint32Array(256);
-      for (window.crypto.getRandomValues(X), K = 0; K < X.length; ++K) Y[U++] = 255 & X[K];
-    }
-    var $ = 0,
-      Z = function (e) {
-        if (($ = $ || 0) >= 256 || U >= 256) window.removeEventListener ? window.removeEventListener("mousemove", Z, !1) : window.detachEvent && window.detachEvent("onmousemove", Z);else try {
-          var t = e.x + e.y;
-          Y[U++] = 255 & t, $ += 1;
-        } catch (r) {}
-      };
-    "undefined" !== typeof window && (window.addEventListener ? window.addEventListener("mousemove", Z, !1) : window.attachEvent && window.attachEvent("onmousemove", Z));
-  }
-  function J() {
-    if (null == W) {
-      for (W = new q(); U < 256;) {
-        var e = Math.floor(65536 * Math.random());
-        Y[U++] = 255 & e;
-      }
-      for (W.init(Y), U = 0; U < Y.length; ++U) Y[U] = 0;
-      U = 0;
-    }
-    return W.next();
-  }
-  var Q = function () {
-    function e() {}
-    return e.prototype.nextBytes = function (e) {
-      for (var t = 0; t < e.length; ++t) e[t] = J();
-    }, e;
-  }();
-  var ee = function () {
-    function e() {
-      this.n = null, this.e = 0, this.d = null, this.p = null, this.q = null, this.dmp1 = null, this.dmq1 = null, this.coeff = null;
-    }
-    return e.prototype.doPublic = function (e) {
-      return e.modPowInt(this.e, this.n);
-    }, e.prototype.doPrivate = function (e) {
-      if (null == this.p || null == this.q) return e.modPow(this.d, this.n);
-      for (var t = e.mod(this.p).modPow(this.dmp1, this.p), r = e.mod(this.q).modPow(this.dmq1, this.q); t.compareTo(r) < 0;) t = t.add(this.p);
-      return t.subtract(r).multiply(this.coeff).mod(this.p).multiply(this.q).add(r);
-    }, e.prototype.setPublic = function (e, t) {
-      null != e && null != t && e.length > 0 && t.length > 0 ? (this.n = k(e, 16), this.e = parseInt(t, 16)) : console.error("Invalid RSA public key");
-    }, e.prototype.encrypt = function (e) {
-      var t = this.n.bitLength() + 7 >> 3,
-        r = function (e, t) {
-          if (t < e.length + 11) return console.error("Message too long for RSA"), null;
-          for (var r = [], n = e.length - 1; n >= 0 && t > 0;) {
-            var i = e.charCodeAt(n--);
-            i < 128 ? r[--t] = i : i > 127 && i < 2048 ? (r[--t] = 63 & i | 128, r[--t] = i >> 6 | 192) : (r[--t] = 63 & i | 128, r[--t] = i >> 6 & 63 | 128, r[--t] = i >> 12 | 224);
-          }
-          r[--t] = 0;
-          for (var s = new Q(), o = []; t > 2;) {
-            for (o[0] = 0; 0 == o[0];) s.nextBytes(o);
-            r[--t] = o[0];
-          }
-          return r[--t] = 2, r[--t] = 0, new C(r);
-        }(e, t);
-      if (null == r) return null;
-      var n = this.doPublic(r);
-      if (null == n) return null;
-      for (var i = n.toString(16), s = i.length, o = 0; o < 2 * t - s; o++) i = "0" + i;
-      return i;
-    }, e.prototype.setPrivate = function (e, t, r) {
-      null != e && null != t && e.length > 0 && t.length > 0 ? (this.n = k(e, 16), this.e = parseInt(t, 16), this.d = k(r, 16)) : console.error("Invalid RSA private key");
-    }, e.prototype.setPrivateEx = function (e, t, r, n, i, s, o, a) {
-      null != e && null != t && e.length > 0 && t.length > 0 ? (this.n = k(e, 16), this.e = parseInt(t, 16), this.d = k(r, 16), this.p = k(n, 16), this.q = k(i, 16), this.dmp1 = k(s, 16), this.dmq1 = k(o, 16), this.coeff = k(a, 16)) : console.error("Invalid RSA private key");
-    }, e.prototype.generate = function (e, t) {
-      var r = new Q(),
-        n = e >> 1;
-      this.e = parseInt(t, 16);
-      for (var i = new C(t, 16);;) {
-        for (; this.p = new C(e - n, 1, r), 0 != this.p.subtract(C.ONE).gcd(i).compareTo(C.ONE) || !this.p.isProbablePrime(10););
-        for (; this.q = new C(n, 1, r), 0 != this.q.subtract(C.ONE).gcd(i).compareTo(C.ONE) || !this.q.isProbablePrime(10););
-        if (this.p.compareTo(this.q) <= 0) {
-          var s = this.p;
-          this.p = this.q, this.q = s;
-        }
-        var o = this.p.subtract(C.ONE),
-          a = this.q.subtract(C.ONE),
-          l = o.multiply(a);
-        if (0 == l.gcd(i).compareTo(C.ONE)) {
-          this.n = this.p.multiply(this.q), this.d = i.modInverse(l), this.dmp1 = this.d.mod(o), this.dmq1 = this.d.mod(a), this.coeff = this.q.modInverse(this.p);
-          break;
-        }
-      }
-    }, e.prototype.decrypt = function (e) {
-      var t = k(e, 16),
-        r = this.doPrivate(t);
-      return null == r ? null : function (e, t) {
-        var r = e.toByteArray(),
-          n = 0;
-        for (; n < r.length && 0 == r[n];) ++n;
-        if (r.length - n != t - 1 || 2 != r[n]) return null;
-        ++n;
-        for (; 0 != r[n];) if (++n >= r.length) return null;
-        var i = "";
-        for (; ++n < r.length;) {
-          var s = 255 & r[n];
-          s < 128 ? i += String.fromCharCode(s) : s > 191 && s < 224 ? (i += String.fromCharCode((31 & s) << 6 | 63 & r[n + 1]), ++n) : (i += String.fromCharCode((15 & s) << 12 | (63 & r[n + 1]) << 6 | 63 & r[n + 2]), n += 2);
-        }
-        return i;
-      }(r, this.n.bitLength() + 7 >> 3);
-    }, e.prototype.generateAsync = function (e, t, r) {
-      var n = new Q(),
-        i = e >> 1;
-      this.e = parseInt(t, 16);
-      var s = new C(t, 16),
-        o = this,
-        a = function () {
-          var t = function () {
-              if (o.p.compareTo(o.q) <= 0) {
-                var e = o.p;
-                o.p = o.q, o.q = e;
-              }
-              var t = o.p.subtract(C.ONE),
-                n = o.q.subtract(C.ONE),
-                i = t.multiply(n);
-              0 == i.gcd(s).compareTo(C.ONE) ? (o.n = o.p.multiply(o.q), o.d = s.modInverse(i), o.dmp1 = o.d.mod(t), o.dmq1 = o.d.mod(n), o.coeff = o.q.modInverse(o.p), setTimeout(function () {
-                r();
-              }, 0)) : setTimeout(a, 0);
-            },
-            l = function () {
-              o.q = B(), o.q.fromNumberAsync(i, 1, n, function () {
-                o.q.subtract(C.ONE).gcda(s, function (e) {
-                  0 == e.compareTo(C.ONE) && o.q.isProbablePrime(10) ? setTimeout(t, 0) : setTimeout(l, 0);
-                });
-              });
-            },
-            c = function () {
-              o.p = B(), o.p.fromNumberAsync(e - i, 1, n, function () {
-                o.p.subtract(C.ONE).gcda(s, function (e) {
-                  0 == e.compareTo(C.ONE) && o.p.isProbablePrime(10) ? setTimeout(l, 0) : setTimeout(c, 0);
-                });
-              });
-            };
-          setTimeout(c, 0);
-        };
-      setTimeout(a, 0);
-    }, e.prototype.sign = function (e, t, r) {
-      var n = function (e, t) {
-        if (t < e.length + 22) return console.error("Message too long for RSA"), null;
-        for (var r = t - e.length - 6, n = "", i = 0; i < r; i += 2) n += "ff";
-        return k("0001" + n + "00" + e, 16);
-      }((te[r] || "") + t(e).toString(), this.n.bitLength() / 4);
-      if (null == n) return null;
-      var i = this.doPrivate(n);
-      if (null == i) return null;
-      var s = i.toString(16);
-      return 0 == (1 & s.length) ? s : "0" + s;
-    }, e.prototype.verify = function (e, t, r) {
-      var n = k(t, 16),
-        i = this.doPublic(n);
-      return null == i ? null : function (e) {
-        for (var t in te) if (te.hasOwnProperty(t)) {
-          var r = te[t],
-            n = r.length;
-          if (e.substr(0, n) == r) return e.substr(n);
-        }
-        return e;
-      }(i.toString(16).replace(/^1f+00/, "")) == r(e).toString();
-    }, e;
-  }();
-  var te = {
-    md2: "3020300c06082a864886f70d020205000410",
-    md5: "3020300c06082a864886f70d020505000410",
-    sha1: "3021300906052b0e03021a05000414",
-    sha224: "302d300d06096086480165030402040500041c",
-    sha256: "3031300d060960864801650304020105000420",
-    sha384: "3041300d060960864801650304020205000430",
-    sha512: "3051300d060960864801650304020305000440",
-    ripemd160: "3021300906052b2403020105000414"
-  };
-  var re = {};
-  re.lang = {
-    extend: function (e, t, r) {
-      if (!t || !e) throw new Error("YAHOO.lang.extend failed, please check that all dependencies are included.");
-      var n = function () {};
-      if (n.prototype = t.prototype, e.prototype = new n(), e.prototype.constructor = e, e.superclass = t.prototype, t.prototype.constructor == Object.prototype.constructor && (t.prototype.constructor = t), r) {
-        var i;
-        for (i in r) e.prototype[i] = r[i];
-        var s = function () {},
-          o = ["toString", "valueOf"];
-        try {
-          /MSIE/.test(navigator.userAgent) && (s = function (e, t) {
-            for (i = 0; i < o.length; i += 1) {
-              var r = o[i],
-                n = t[r];
-              "function" === typeof n && n != Object.prototype[r] && (e[r] = n);
-            }
-          });
-        } catch (a) {}
-        s(e.prototype, r);
-      }
-    }
-  };
-  var ne = {};
-  "undefined" != typeof ne.asn1 && ne.asn1 || (ne.asn1 = {}), ne.asn1.ASN1Util = new function () {
-    this.integerToByteHex = function (e) {
-      var t = e.toString(16);
-      return t.length % 2 == 1 && (t = "0" + t), t;
-    }, this.bigIntToMinTwosComplementsHex = function (e) {
-      var t = e.toString(16);
-      if ("-" != t.substr(0, 1)) t.length % 2 == 1 ? t = "0" + t : t.match(/^[0-7]/) || (t = "00" + t);else {
-        var r = t.substr(1).length;
-        r % 2 == 1 ? r += 1 : t.match(/^[0-7]/) || (r += 2);
-        for (var n = "", i = 0; i < r; i++) n += "f";
-        t = new C(n, 16).xor(e).add(C.ONE).toString(16).replace(/^-/, "");
-      }
-      return t;
-    }, this.getPEMStringFromHex = function (e, t) {
-      return hextopem(e, t);
-    }, this.newObject = function (e) {
-      var t = ne.asn1,
-        r = t.DERBoolean,
-        n = t.DERInteger,
-        i = t.DERBitString,
-        s = t.DEROctetString,
-        o = t.DERNull,
-        a = t.DERObjectIdentifier,
-        l = t.DEREnumerated,
-        c = t.DERUTF8String,
-        u = t.DERNumericString,
-        d = t.DERPrintableString,
-        p = t.DERTeletexString,
-        f = t.DERIA5String,
-        h = t.DERUTCTime,
-        g = t.DERGeneralizedTime,
-        m = t.DERSequence,
-        v = t.DERSet,
-        y = t.DERTaggedObject,
-        b = t.ASN1Util.newObject,
-        w = Object.keys(e);
-      if (1 != w.length) throw "key of param shall be only one.";
-      var S = w[0];
-      if (-1 == ":bool:int:bitstr:octstr:null:oid:enum:utf8str:numstr:prnstr:telstr:ia5str:utctime:gentime:seq:set:tag:".indexOf(":" + S + ":")) throw "undefined key: " + S;
-      if ("bool" == S) return new r(e[S]);
-      if ("int" == S) return new n(e[S]);
-      if ("bitstr" == S) return new i(e[S]);
-      if ("octstr" == S) return new s(e[S]);
-      if ("null" == S) return new o(e[S]);
-      if ("oid" == S) return new a(e[S]);
-      if ("enum" == S) return new l(e[S]);
-      if ("utf8str" == S) return new c(e[S]);
-      if ("numstr" == S) return new u(e[S]);
-      if ("prnstr" == S) return new d(e[S]);
-      if ("telstr" == S) return new p(e[S]);
-      if ("ia5str" == S) return new f(e[S]);
-      if ("utctime" == S) return new h(e[S]);
-      if ("gentime" == S) return new g(e[S]);
-      if ("seq" == S) {
-        for (var T = e[S], x = [], E = 0; E < T.length; E++) {
-          var O = b(T[E]);
-          x.push(O);
-        }
-        return new m({
-          array: x
-        });
-      }
-      if ("set" == S) {
-        for (T = e[S], x = [], E = 0; E < T.length; E++) {
-          O = b(T[E]);
-          x.push(O);
-        }
-        return new v({
-          array: x
-        });
-      }
-      if ("tag" == S) {
-        var M = e[S];
-        if ("[object Array]" === Object.prototype.toString.call(M) && 3 == M.length) {
-          var P = b(M[2]);
-          return new y({
-            tag: M[0],
-            explicit: M[1],
-            obj: P
-          });
-        }
-        var _ = {};
-        if (void 0 !== M.explicit && (_.explicit = M.explicit), void 0 !== M.tag && (_.tag = M.tag), void 0 === M.obj) throw "obj shall be specified for 'tag'.";
-        return _.obj = b(M.obj), new y(_);
-      }
-    }, this.jsonToASN1HEX = function (e) {
-      return this.newObject(e).getEncodedHex();
-    };
-  }(), ne.asn1.ASN1Util.oidHexToInt = function (e) {
-    for (var t = "", r = parseInt(e.substr(0, 2), 16), n = (t = Math.floor(r / 40) + "." + r % 40, ""), i = 2; i < e.length; i += 2) {
-      var s = ("00000000" + parseInt(e.substr(i, 2), 16).toString(2)).slice(-8);
-      if (n += s.substr(1, 7), "0" == s.substr(0, 1)) t = t + "." + new C(n, 2).toString(10), n = "";
-    }
-    return t;
-  }, ne.asn1.ASN1Util.oidIntToHex = function (e) {
-    var t = function (e) {
-        var t = e.toString(16);
-        return 1 == t.length && (t = "0" + t), t;
-      },
-      r = function (e) {
-        var r = "",
-          n = new C(e, 10).toString(2),
-          i = 7 - n.length % 7;
-        7 == i && (i = 0);
-        for (var s = "", o = 0; o < i; o++) s += "0";
-        n = s + n;
-        for (o = 0; o < n.length - 1; o += 7) {
-          var a = n.substr(o, 7);
-          o != n.length - 7 && (a = "1" + a), r += t(parseInt(a, 2));
-        }
-        return r;
-      };
-    if (!e.match(/^[0-9.]+$/)) throw "malformed oid string: " + e;
-    var n = "",
-      i = e.split("."),
-      s = 40 * parseInt(i[0]) + parseInt(i[1]);
-    n += t(s), i.splice(0, 2);
-    for (var o = 0; o < i.length; o++) n += r(i[o]);
-    return n;
-  }, ne.asn1.ASN1Object = function () {
-    this.getLengthHexFromValue = function () {
-      if ("undefined" == typeof this.hV || null == this.hV) throw "this.hV is null or undefined.";
-      if (this.hV.length % 2 == 1) throw "value hex must be even length: n=0,v=" + this.hV;
-      var e = this.hV.length / 2,
-        t = e.toString(16);
-      if (t.length % 2 == 1 && (t = "0" + t), e < 128) return t;
-      var r = t.length / 2;
-      if (r > 15) throw "ASN.1 length too long to represent by 8x: n = " + e.toString(16);
-      return (128 + r).toString(16) + t;
-    }, this.getEncodedHex = function () {
-      return (null == this.hTLV || this.isModified) && (this.hV = this.getFreshValueHex(), this.hL = this.getLengthHexFromValue(), this.hTLV = this.hT + this.hL + this.hV, this.isModified = !1), this.hTLV;
-    }, this.getValueHex = function () {
-      return this.getEncodedHex(), this.hV;
-    }, this.getFreshValueHex = function () {
-      return "";
-    };
-  }, ne.asn1.DERAbstractString = function (e) {
-    ne.asn1.DERAbstractString.superclass.constructor.call(this);
-    this.getString = function () {
-      return this.s;
-    }, this.setString = function (e) {
-      this.hTLV = null, this.isModified = !0, this.s = e, this.hV = stohex(this.s);
-    }, this.setStringHex = function (e) {
-      this.hTLV = null, this.isModified = !0, this.s = null, this.hV = e;
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, "undefined" != typeof e && ("string" == typeof e ? this.setString(e) : "undefined" != typeof e.str ? this.setString(e.str) : "undefined" != typeof e.hex && this.setStringHex(e.hex));
-  }, re.lang.extend(ne.asn1.DERAbstractString, ne.asn1.ASN1Object), ne.asn1.DERAbstractTime = function (e) {
-    ne.asn1.DERAbstractTime.superclass.constructor.call(this);
-    this.localDateToUTC = function (e) {
-      return utc = e.getTime() + 60000 * e.getTimezoneOffset(), new Date(utc);
-    }, this.formatDate = function (e, t, r) {
-      var n = this.zeroPadding,
-        i = this.localDateToUTC(e),
-        s = String(i.getFullYear());
-      "utc" == t && (s = s.substr(2, 2));
-      var o = s + n(String(i.getMonth() + 1), 2) + n(String(i.getDate()), 2) + n(String(i.getHours()), 2) + n(String(i.getMinutes()), 2) + n(String(i.getSeconds()), 2);
-      if (!0 === r) {
-        var a = i.getMilliseconds();
-        if (0 != a) {
-          var l = n(String(a), 3);
-          o = o + "." + (l = l.replace(/[0]+$/, ""));
-        }
-      }
-      return o + "Z";
-    }, this.zeroPadding = function (e, t) {
-      return e.length >= t ? e : new Array(t - e.length + 1).join("0") + e;
-    }, this.getString = function () {
-      return this.s;
-    }, this.setString = function (e) {
-      this.hTLV = null, this.isModified = !0, this.s = e, this.hV = stohex(e);
-    }, this.setByDateValue = function (e, t, r, n, i, s) {
-      var o = new Date(Date.UTC(e, t - 1, r, n, i, s, 0));
-      this.setByDate(o);
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    };
-  }, re.lang.extend(ne.asn1.DERAbstractTime, ne.asn1.ASN1Object), ne.asn1.DERAbstractStructured = function (e) {
-    ne.asn1.DERAbstractString.superclass.constructor.call(this);
-    this.setByASN1ObjectArray = function (e) {
-      this.hTLV = null, this.isModified = !0, this.asn1Array = e;
-    }, this.appendASN1Object = function (e) {
-      this.hTLV = null, this.isModified = !0, this.asn1Array.push(e);
-    }, this.asn1Array = new Array(), "undefined" != typeof e && "undefined" != typeof e.array && (this.asn1Array = e.array);
-  }, re.lang.extend(ne.asn1.DERAbstractStructured, ne.asn1.ASN1Object), ne.asn1.DERBoolean = function () {
-    ne.asn1.DERBoolean.superclass.constructor.call(this), this.hT = "01", this.hTLV = "0101ff";
-  }, re.lang.extend(ne.asn1.DERBoolean, ne.asn1.ASN1Object), ne.asn1.DERInteger = function (e) {
-    ne.asn1.DERInteger.superclass.constructor.call(this), this.hT = "02", this.setByBigInteger = function (e) {
-      this.hTLV = null, this.isModified = !0, this.hV = ne.asn1.ASN1Util.bigIntToMinTwosComplementsHex(e);
-    }, this.setByInteger = function (e) {
-      var t = new C(String(e), 10);
-      this.setByBigInteger(t);
-    }, this.setValueHex = function (e) {
-      this.hV = e;
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, "undefined" != typeof e && ("undefined" != typeof e.bigint ? this.setByBigInteger(e.bigint) : "undefined" != typeof e.int ? this.setByInteger(e.int) : "number" == typeof e ? this.setByInteger(e) : "undefined" != typeof e.hex && this.setValueHex(e.hex));
-  }, re.lang.extend(ne.asn1.DERInteger, ne.asn1.ASN1Object), ne.asn1.DERBitString = function (e) {
-    if (void 0 !== e && "undefined" !== typeof e.obj) {
-      var t = ne.asn1.ASN1Util.newObject(e.obj);
-      e.hex = "00" + t.getEncodedHex();
-    }
-    ne.asn1.DERBitString.superclass.constructor.call(this), this.hT = "03", this.setHexValueIncludingUnusedBits = function (e) {
-      this.hTLV = null, this.isModified = !0, this.hV = e;
-    }, this.setUnusedBitsAndHexValue = function (e, t) {
-      if (e < 0 || 7 < e) throw "unused bits shall be from 0 to 7: u = " + e;
-      var r = "0" + e;
-      this.hTLV = null, this.isModified = !0, this.hV = r + t;
-    }, this.setByBinaryString = function (e) {
-      var t = 8 - (e = e.replace(/0+$/, "")).length % 8;
-      8 == t && (t = 0);
-      for (var r = 0; r <= t; r++) e += "0";
-      var n = "";
-      for (r = 0; r < e.length - 1; r += 8) {
-        var i = e.substr(r, 8),
-          s = parseInt(i, 2).toString(16);
-        1 == s.length && (s = "0" + s), n += s;
-      }
-      this.hTLV = null, this.isModified = !0, this.hV = "0" + t + n;
-    }, this.setByBooleanArray = function (e) {
-      for (var t = "", r = 0; r < e.length; r++) 1 == e[r] ? t += "1" : t += "0";
-      this.setByBinaryString(t);
-    }, this.newFalseArray = function (e) {
-      for (var t = new Array(e), r = 0; r < e; r++) t[r] = !1;
-      return t;
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, "undefined" != typeof e && ("string" == typeof e && e.toLowerCase().match(/^[0-9a-f]+$/) ? this.setHexValueIncludingUnusedBits(e) : "undefined" != typeof e.hex ? this.setHexValueIncludingUnusedBits(e.hex) : "undefined" != typeof e.bin ? this.setByBinaryString(e.bin) : "undefined" != typeof e.array && this.setByBooleanArray(e.array));
-  }, re.lang.extend(ne.asn1.DERBitString, ne.asn1.ASN1Object), ne.asn1.DEROctetString = function (e) {
-    if (void 0 !== e && "undefined" !== typeof e.obj) {
-      var t = ne.asn1.ASN1Util.newObject(e.obj);
-      e.hex = t.getEncodedHex();
-    }
-    ne.asn1.DEROctetString.superclass.constructor.call(this, e), this.hT = "04";
-  }, re.lang.extend(ne.asn1.DEROctetString, ne.asn1.DERAbstractString), ne.asn1.DERNull = function () {
-    ne.asn1.DERNull.superclass.constructor.call(this), this.hT = "05", this.hTLV = "0500";
-  }, re.lang.extend(ne.asn1.DERNull, ne.asn1.ASN1Object), ne.asn1.DERObjectIdentifier = function (e) {
-    var t = function (e) {
-        var t = e.toString(16);
-        return 1 == t.length && (t = "0" + t), t;
-      },
-      r = function (e) {
-        var r = "",
-          n = new C(e, 10).toString(2),
-          i = 7 - n.length % 7;
-        7 == i && (i = 0);
-        for (var s = "", o = 0; o < i; o++) s += "0";
-        n = s + n;
-        for (o = 0; o < n.length - 1; o += 7) {
-          var a = n.substr(o, 7);
-          o != n.length - 7 && (a = "1" + a), r += t(parseInt(a, 2));
-        }
-        return r;
-      };
-    ne.asn1.DERObjectIdentifier.superclass.constructor.call(this), this.hT = "06", this.setValueHex = function (e) {
-      this.hTLV = null, this.isModified = !0, this.s = null, this.hV = e;
-    }, this.setValueOidString = function (e) {
-      if (!e.match(/^[0-9.]+$/)) throw "malformed oid string: " + e;
-      var n = "",
-        i = e.split("."),
-        s = 40 * parseInt(i[0]) + parseInt(i[1]);
-      n += t(s), i.splice(0, 2);
-      for (var o = 0; o < i.length; o++) n += r(i[o]);
-      this.hTLV = null, this.isModified = !0, this.s = null, this.hV = n;
-    }, this.setValueName = function (e) {
-      var t = ne.asn1.x509.OID.name2oid(e);
-      if ("" === t) throw "DERObjectIdentifier oidName undefined: " + e;
-      this.setValueOidString(t);
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, void 0 !== e && ("string" === typeof e ? e.match(/^[0-2].[0-9.]+$/) ? this.setValueOidString(e) : this.setValueName(e) : void 0 !== e.oid ? this.setValueOidString(e.oid) : void 0 !== e.hex ? this.setValueHex(e.hex) : void 0 !== e.name && this.setValueName(e.name));
-  }, re.lang.extend(ne.asn1.DERObjectIdentifier, ne.asn1.ASN1Object), ne.asn1.DEREnumerated = function (e) {
-    ne.asn1.DEREnumerated.superclass.constructor.call(this), this.hT = "0a", this.setByBigInteger = function (e) {
-      this.hTLV = null, this.isModified = !0, this.hV = ne.asn1.ASN1Util.bigIntToMinTwosComplementsHex(e);
-    }, this.setByInteger = function (e) {
-      var t = new C(String(e), 10);
-      this.setByBigInteger(t);
-    }, this.setValueHex = function (e) {
-      this.hV = e;
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, "undefined" != typeof e && ("undefined" != typeof e.int ? this.setByInteger(e.int) : "number" == typeof e ? this.setByInteger(e) : "undefined" != typeof e.hex && this.setValueHex(e.hex));
-  }, re.lang.extend(ne.asn1.DEREnumerated, ne.asn1.ASN1Object), ne.asn1.DERUTF8String = function (e) {
-    ne.asn1.DERUTF8String.superclass.constructor.call(this, e), this.hT = "0c";
-  }, re.lang.extend(ne.asn1.DERUTF8String, ne.asn1.DERAbstractString), ne.asn1.DERNumericString = function (e) {
-    ne.asn1.DERNumericString.superclass.constructor.call(this, e), this.hT = "12";
-  }, re.lang.extend(ne.asn1.DERNumericString, ne.asn1.DERAbstractString), ne.asn1.DERPrintableString = function (e) {
-    ne.asn1.DERPrintableString.superclass.constructor.call(this, e), this.hT = "13";
-  }, re.lang.extend(ne.asn1.DERPrintableString, ne.asn1.DERAbstractString), ne.asn1.DERTeletexString = function (e) {
-    ne.asn1.DERTeletexString.superclass.constructor.call(this, e), this.hT = "14";
-  }, re.lang.extend(ne.asn1.DERTeletexString, ne.asn1.DERAbstractString), ne.asn1.DERIA5String = function (e) {
-    ne.asn1.DERIA5String.superclass.constructor.call(this, e), this.hT = "16";
-  }, re.lang.extend(ne.asn1.DERIA5String, ne.asn1.DERAbstractString), ne.asn1.DERUTCTime = function (e) {
-    ne.asn1.DERUTCTime.superclass.constructor.call(this, e), this.hT = "17", this.setByDate = function (e) {
-      this.hTLV = null, this.isModified = !0, this.date = e, this.s = this.formatDate(this.date, "utc"), this.hV = stohex(this.s);
-    }, this.getFreshValueHex = function () {
-      return "undefined" == typeof this.date && "undefined" == typeof this.s && (this.date = new Date(), this.s = this.formatDate(this.date, "utc"), this.hV = stohex(this.s)), this.hV;
-    }, void 0 !== e && (void 0 !== e.str ? this.setString(e.str) : "string" == typeof e && e.match(/^[0-9]{12}Z$/) ? this.setString(e) : void 0 !== e.hex ? this.setStringHex(e.hex) : void 0 !== e.date && this.setByDate(e.date));
-  }, re.lang.extend(ne.asn1.DERUTCTime, ne.asn1.DERAbstractTime), ne.asn1.DERGeneralizedTime = function (e) {
-    ne.asn1.DERGeneralizedTime.superclass.constructor.call(this, e), this.hT = "18", this.withMillis = !1, this.setByDate = function (e) {
-      this.hTLV = null, this.isModified = !0, this.date = e, this.s = this.formatDate(this.date, "gen", this.withMillis), this.hV = stohex(this.s);
-    }, this.getFreshValueHex = function () {
-      return void 0 === this.date && void 0 === this.s && (this.date = new Date(), this.s = this.formatDate(this.date, "gen", this.withMillis), this.hV = stohex(this.s)), this.hV;
-    }, void 0 !== e && (void 0 !== e.str ? this.setString(e.str) : "string" == typeof e && e.match(/^[0-9]{14}Z$/) ? this.setString(e) : void 0 !== e.hex ? this.setStringHex(e.hex) : void 0 !== e.date && this.setByDate(e.date), !0 === e.millis && (this.withMillis = !0));
-  }, re.lang.extend(ne.asn1.DERGeneralizedTime, ne.asn1.DERAbstractTime), ne.asn1.DERSequence = function (e) {
-    ne.asn1.DERSequence.superclass.constructor.call(this, e), this.hT = "30", this.getFreshValueHex = function () {
-      for (var e = "", t = 0; t < this.asn1Array.length; t++) {
-        e += this.asn1Array[t].getEncodedHex();
-      }
-      return this.hV = e, this.hV;
-    };
-  }, re.lang.extend(ne.asn1.DERSequence, ne.asn1.DERAbstractStructured), ne.asn1.DERSet = function (e) {
-    ne.asn1.DERSet.superclass.constructor.call(this, e), this.hT = "31", this.sortFlag = !0, this.getFreshValueHex = function () {
-      for (var e = new Array(), t = 0; t < this.asn1Array.length; t++) {
-        var r = this.asn1Array[t];
-        e.push(r.getEncodedHex());
-      }
-      return 1 == this.sortFlag && e.sort(), this.hV = e.join(""), this.hV;
-    }, "undefined" != typeof e && "undefined" != typeof e.sortflag && 0 == e.sortflag && (this.sortFlag = !1);
-  }, re.lang.extend(ne.asn1.DERSet, ne.asn1.DERAbstractStructured), ne.asn1.DERTaggedObject = function (e) {
-    ne.asn1.DERTaggedObject.superclass.constructor.call(this), this.hT = "a0", this.hV = "", this.isExplicit = !0, this.asn1Object = null, this.setASN1Object = function (e, t, r) {
-      this.hT = t, this.isExplicit = e, this.asn1Object = r, this.isExplicit ? (this.hV = this.asn1Object.getEncodedHex(), this.hTLV = null, this.isModified = !0) : (this.hV = null, this.hTLV = r.getEncodedHex(), this.hTLV = this.hTLV.replace(/^../, t), this.isModified = !1);
-    }, this.getFreshValueHex = function () {
-      return this.hV;
-    }, "undefined" != typeof e && ("undefined" != typeof e.tag && (this.hT = e.tag), "undefined" != typeof e.explicit && (this.isExplicit = e.explicit), "undefined" != typeof e.obj && (this.asn1Object = e.obj, this.setASN1Object(this.isExplicit, this.hT, this.asn1Object)));
-  }, re.lang.extend(ne.asn1.DERTaggedObject, ne.asn1.ASN1Object);
-  var ie,
-    se = function () {
-      var e = function (t, r) {
-        return e = Object.setPrototypeOf || {
-          __proto__: []
-        } instanceof Array && function (e, t) {
-          e.__proto__ = t;
-        } || function (e, t) {
-          for (var r in t) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-        }, e(t, r);
-      };
-      return function (t, r) {
-        if ("function" !== typeof r && null !== r) throw new TypeError("Class extends value " + String(r) + " is not a constructor or null");
-        function n() {
-          this.constructor = t;
-        }
-        e(t, r), t.prototype = null === r ? Object.create(r) : (n.prototype = r.prototype, new n());
-      };
-    }(),
-    oe = function (e) {
-      function t(r) {
-        var n = e.call(this) || this;
-        return r && ("string" === typeof r ? n.parseKey(r) : (t.hasPrivateKeyProperty(r) || t.hasPublicKeyProperty(r)) && n.parsePropertiesFrom(r)), n;
-      }
-      return se(t, e), t.prototype.parseKey = function (e) {
-        try {
-          var t = 0,
-            r = 0,
-            n = /^\s*(?:[0-9A-Fa-f][0-9A-Fa-f]\s*)+$/.test(e) ? v(e) : y.unarmor(e),
-            i = M.decode(n);
-          if (3 === i.sub.length && (i = i.sub[2].sub[0]), 9 === i.sub.length) {
-            t = i.sub[1].getHexStringValue(), this.n = k(t, 16), r = i.sub[2].getHexStringValue(), this.e = parseInt(r, 16);
-            var s = i.sub[3].getHexStringValue();
-            this.d = k(s, 16);
-            var o = i.sub[4].getHexStringValue();
-            this.p = k(o, 16);
-            var a = i.sub[5].getHexStringValue();
-            this.q = k(a, 16);
-            var l = i.sub[6].getHexStringValue();
-            this.dmp1 = k(l, 16);
-            var c = i.sub[7].getHexStringValue();
-            this.dmq1 = k(c, 16);
-            var u = i.sub[8].getHexStringValue();
-            this.coeff = k(u, 16);
-          } else {
-            if (2 !== i.sub.length) return !1;
-            if (i.sub[0].sub) {
-              var d = i.sub[1].sub[0];
-              t = d.sub[0].getHexStringValue(), this.n = k(t, 16), r = d.sub[1].getHexStringValue(), this.e = parseInt(r, 16);
-            } else t = i.sub[0].getHexStringValue(), this.n = k(t, 16), r = i.sub[1].getHexStringValue(), this.e = parseInt(r, 16);
-          }
-          return !0;
-        } catch (p) {
-          return !1;
-        }
-      }, t.prototype.getPrivateBaseKey = function () {
-        var e = {
-          array: [new ne.asn1.DERInteger({
-            int: 0
-          }), new ne.asn1.DERInteger({
-            bigint: this.n
-          }), new ne.asn1.DERInteger({
-            int: this.e
-          }), new ne.asn1.DERInteger({
-            bigint: this.d
-          }), new ne.asn1.DERInteger({
-            bigint: this.p
-          }), new ne.asn1.DERInteger({
-            bigint: this.q
-          }), new ne.asn1.DERInteger({
-            bigint: this.dmp1
-          }), new ne.asn1.DERInteger({
-            bigint: this.dmq1
-          }), new ne.asn1.DERInteger({
-            bigint: this.coeff
-          })]
-        };
-        return new ne.asn1.DERSequence(e).getEncodedHex();
-      }, t.prototype.getPrivateBaseKeyB64 = function () {
-        return h(this.getPrivateBaseKey());
-      }, t.prototype.getPublicBaseKey = function () {
-        var e = new ne.asn1.DERSequence({
-            array: [new ne.asn1.DERObjectIdentifier({
-              oid: "1.2.840.113549.1.1.1"
-            }), new ne.asn1.DERNull()]
-          }),
-          t = new ne.asn1.DERSequence({
-            array: [new ne.asn1.DERInteger({
-              bigint: this.n
-            }), new ne.asn1.DERInteger({
-              int: this.e
-            })]
-          }),
-          r = new ne.asn1.DERBitString({
-            hex: "00" + t.getEncodedHex()
-          });
-        return new ne.asn1.DERSequence({
-          array: [e, r]
-        }).getEncodedHex();
-      }, t.prototype.getPublicBaseKeyB64 = function () {
-        return h(this.getPublicBaseKey());
-      }, t.wordwrap = function (e, t) {
-        if (!e) return e;
-        var r = "(.{1," + (t = t || 64) + "})( +|$\n?)|(.{1," + t + "})";
-        return e.match(RegExp(r, "g")).join("\n");
-      }, t.prototype.getPrivateKey = function () {
-        var e = "-----BEGIN RSA PRIVATE KEY-----\n";
-        return e += t.wordwrap(this.getPrivateBaseKeyB64()) + "\n", e += "-----END RSA PRIVATE KEY-----";
-      }, t.prototype.getPublicKey = function () {
-        var e = "-----BEGIN PUBLIC KEY-----\n";
-        return e += t.wordwrap(this.getPublicBaseKeyB64()) + "\n", e += "-----END PUBLIC KEY-----";
-      }, t.hasPublicKeyProperty = function (e) {
-        return (e = e || {}).hasOwnProperty("n") && e.hasOwnProperty("e");
-      }, t.hasPrivateKeyProperty = function (e) {
-        return (e = e || {}).hasOwnProperty("n") && e.hasOwnProperty("e") && e.hasOwnProperty("d") && e.hasOwnProperty("p") && e.hasOwnProperty("q") && e.hasOwnProperty("dmp1") && e.hasOwnProperty("dmq1") && e.hasOwnProperty("coeff");
-      }, t.prototype.parsePropertiesFrom = function (e) {
-        this.n = e.n, this.e = e.e, e.hasOwnProperty("d") && (this.d = e.d, this.p = e.p, this.q = e.q, this.dmp1 = e.dmp1, this.dmq1 = e.dmq1, this.coeff = e.coeff);
-      }, t;
-    }(ee),
-    ae = "undefined" !== typeof process ? null === (ie = {
-      NODE_ENV: "production",
-      PUBLIC_URL: "//shadow.elemecdn.com/faas/parkour-game",
-      WDS_SOCKET_HOST: void 0,
-      WDS_SOCKET_PATH: void 0,
-      WDS_SOCKET_PORT: void 0,
-      FAST_REFRESH: !0
-    }) || void 0 === ie ? void 0 : ie.npm_package_version : void 0;
-  const le = function () {
-    function e(e) {
-      void 0 === e && (e = {}), e = e || {}, this.default_key_size = e.default_key_size ? parseInt(e.default_key_size, 10) : 1024, this.default_public_exponent = e.default_public_exponent || "010001", this.log = e.log || !1, this.key = null;
-    }
-    return e.prototype.setKey = function (e) {
-      this.log && this.key && console.warn("A key was already set, overriding existing."), this.key = new oe(e);
-    }, e.prototype.setPrivateKey = function (e) {
-      this.setKey(e);
-    }, e.prototype.setPublicKey = function (e) {
-      this.setKey(e);
-    }, e.prototype.decrypt = function (e) {
-      try {
-        return this.getKey().decrypt(g(e));
-      } catch (t) {
-        return !1;
-      }
-    }, e.prototype.encrypt = function (e) {
-      try {
-        return h(this.getKey().encrypt(e));
-      } catch (t) {
-        return !1;
-      }
-    }, e.prototype.sign = function (e, t, r) {
-      try {
-        return h(this.getKey().sign(e, t, r));
-      } catch (n) {
-        return !1;
-      }
-    }, e.prototype.verify = function (e, t, r) {
-      try {
-        return this.getKey().verify(e, g(t), r);
-      } catch (n) {
-        return !1;
-      }
-    }, e.prototype.getKey = function (e) {
-      if (!this.key) {
-        if (this.key = new oe(), e && "[object Function]" === {}.toString.call(e)) return void this.key.generateAsync(this.default_key_size, this.default_public_exponent, e);
-        this.key.generate(this.default_key_size, this.default_public_exponent);
-      }
-      return this.key;
-    }, e.prototype.getPrivateKey = function () {
-      return this.getKey().getPrivateKey();
-    }, e.prototype.getPrivateKeyB64 = function () {
-      return this.getKey().getPrivateBaseKeyB64();
-    }, e.prototype.getPublicKey = function () {
-      return this.getKey().getPublicKey();
-    }, e.prototype.getPublicKeyB64 = function () {
-      return this.getKey().getPublicBaseKeyB64();
-    }, e.version = ae, e;
-  }();
-  return () => le;
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+const _0x49dfef = _0x5370a4("电信营业厅"),
+  _0x8e0885 = require("got"),
+  _0x203c4a = require("path"),
+  {
+    exec: _0x3898d1
+  } = require("child_process"),
+  {
+    CookieJar: _0x4f58d7
+  } = require("tough-cookie"),
+  _0x5336b3 = require("fs"),
+  _0x5e650c = require("crypto-js"),
+  _0x22f09c = "chinaTelecom",
+  _0x1876a7 = /[\n\&\@]/,
+  _0x4aec53 = [_0x22f09c + "Account"],
+  _0x128624 = 30000,
+  _0x5a04a9 = 3,
+  _0x1736e2 = _0x22f09c + "Rpc",
+  _0x16d3ea = process.env[_0x1736e2],
+  _0xf4231c = 6.02,
+  _0x14f289 = "chinaTelecom",
+  _0x100b57 = "https://leafxcy.coding.net/api/user/leafxcy/project/validcode/shared-depot/validCode/git/blob/master/code.json",
+  _0x344953 = "JinDouMall";
+let _0x1d3d6d = {};
+const _0x5370da = "./chinaTelecom_cache.json",
+  _0x3ed712 = "Mozilla/5.0 (Linux; U; Android 12; zh-cn; ONEPLUS A9000 Build/QKQ1.190716.003) AppleWebKit/533.1 (KHTML, like Gecko) Version/5.0 Mobile Safari/533.1",
+  _0x75a069 = "34d7cb0bcdf07523",
+  _0x2304b1 = "1234567`90koiuyhgtfrdewsaqaqsqde",
+  _0x1110eb = "\0\0\0\0\0\0\0\0",
+  _0x3c561e = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDBkLT15ThVgz6/NOl6s8GNPofdWzWbCkWnkaAm7O2LjkM1H7dMvzkiqdxU02jamGRHLX/ZNMCXHnPcW/sDhiFCBN18qFvy8g6VYb9QtroI09e176s+ZCtiv7hbin2cCTj99iUpnEloZm19lwHyo69u5UMiPMpq0/XKBO8lYhN/gwIDAQAB",
+  _0x1e9565 = "-----BEGIN PUBLIC KEY-----\n" + _0x3c561e + "\n-----END PUBLIC KEY-----",
+  _0x516f15 = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+ugG5A8cZ3FqUKDwM57GM4io6JGcStivT8UdGt67PEOihLZTw3P7371+N47PrmsCpnTRzbTgcupKtUv8ImZalYk65dU8rjC/ridwhw9ffW2LBwvkEnDkkKKRi2liWIItDftJVBiWOh17o6gfbPoNrWORcAdcbpk2L+udld5kZNwIDAQAB",
+  _0x4995b7 = "-----BEGIN PUBLIC KEY-----\n" + _0x516f15 + "\n-----END PUBLIC KEY-----",
+  _0x51cf70 = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIPOHtjs6p4sTlpFvrx+ESsYkEvyT4JB/dcEbU6C8+yclpcmWEvwZFymqlKQq89laSH4IxUsPJHKIOiYAMzNibhED1swzecH5XLKEAJclopJqoO95o8W63Euq6K+AKMzyZt1SEqtZ0mXsN8UPnuN/5aoB3kbPLYpfEwBbhto6yrwIDAQAB",
+  _0x2e5ddf = "-----BEGIN PUBLIC KEY-----\n" + _0x51cf70 + "\n-----END PUBLIC KEY-----",
+  _0xc38e90 = require("node-rsa");
+let _0x13a631 = new _0xc38e90(_0x1e9565);
+const _0x4386dc = {
+  "encryptionScheme": "pkcs1"
 };
-function rsaEnc(publicKey, conent) {
-  Zn = new (rsaFunc()())();
-  console.log(Zn);
-  Zn.setPublicKey(publicKey);
-  d = Zn.encrypt(conent);
-  console.log(d);
-  return d;
+_0x13a631.setOptions(_0x4386dc);
+let _0x47bb4b = new _0xc38e90(_0x4995b7);
+const _0xe2cacf = {
+  "encryptionScheme": "pkcs1"
+};
+_0x47bb4b.setOptions(_0xe2cacf);
+let _0x5b4189 = new _0xc38e90(_0x2e5ddf);
+const _0x3ab892 = {
+  "encryptionScheme": "pkcs1"
+};
+_0x5b4189.setOptions(_0x3ab892);
+const _0x131d2d = [202201, 202202, 202203],
+  _0x3c685e = 5;
+function _0x1519a6(_0x5771d9, _0x450cac, _0x2c564d, _0x433dc7, _0x39c4aa, _0x4504ac) {
+  return _0x5e650c[_0x5771d9].encrypt(_0x5e650c.enc.Utf8.parse(_0x433dc7), _0x5e650c.enc.Utf8.parse(_0x39c4aa), {
+    "mode": _0x5e650c.mode[_0x450cac],
+    "padding": _0x5e650c.pad[_0x2c564d],
+    "iv": _0x5e650c.enc.Utf8.parse(_0x4504ac)
+  }).ciphertext.toString(_0x5e650c.enc.Hex);
+}
+function _0x436a1e(_0x28a0ac, _0x359609, _0x282bea, _0x53ad35, _0x1dcccf, _0x387c88) {
+  return _0x5e650c[_0x28a0ac].decrypt({
+    "ciphertext": _0x5e650c.enc.Hex.parse(_0x53ad35)
+  }, _0x5e650c.enc.Utf8.parse(_0x1dcccf), {
+    "mode": _0x5e650c.mode[_0x359609],
+    "padding": _0x5e650c.pad[_0x282bea],
+    "iv": _0x5e650c.enc.Utf8.parse(_0x387c88)
+  }).toString(_0x5e650c.enc.Utf8);
+}
+function _0x4e4355() {
+  try {
+    _0x5336b3.writeFileSync(_0x5370da, JSON.stringify(_0x1d3d6d, null, 4), "utf-8");
+  } catch (_0x345e13) {
+    console.log("保存缓存出错");
+  }
+}
+function _0xa0ff1b() {
+  try {
+    _0x1d3d6d = JSON.parse(_0x5336b3.readFileSync(_0x5370da, "utf-8"));
+  } catch (_0x27edaf) {
+    console.log("读取缓存出错, 新建一个token缓存");
+    _0x4e4355();
+  }
+}
+let _0x300c8e = 0,
+  _0xdb6efe = 0;
+function _0x11cae0() {
+  _0xdb6efe = 1;
+  process.on("SIGTERM", () => {
+    _0xdb6efe = 2;
+    process.exit(0);
+  });
+  const _0x15d402 = _0x203c4a.basename(process.argv[1]),
+    _0x55a240 = ["bash", "timeout", "grep"];
+  let _0x517188 = ["ps afx"];
+  _0x517188.push("grep " + _0x15d402);
+  _0x517188 = _0x517188.concat(_0x55a240.map(_0x376a17 => "grep -v \"" + _0x376a17 + " \""));
+  _0x517188.push("wc -l");
+  const _0x2f47c6 = _0x517188.join("|"),
+    _0x8109 = () => {
+      _0x3898d1(_0x2f47c6, (_0x3db287, _0x30373e, _0x39f532) => {
+        if (_0x3db287 || _0x39f532) return;
+        _0x300c8e = parseInt(_0x30373e.trim(), 10);
+      });
+      _0xdb6efe == 1 && setTimeout(_0x8109, 2000);
+    };
+  _0x8109();
+}
+class _0x9d1851 {
+  constructor() {
+    this.index = _0x49dfef.userIdx++;
+    this.name = "";
+    this.valid = false;
+    const _0x2c28d7 = {
+        "limit": 0
+      },
+      _0x2c4edd = {
+        "Connection": "keep-alive"
+      },
+      _0x5069eb = {
+        "retry": _0x2c28d7,
+        "timeout": _0x128624,
+        "followRedirect": false,
+        "ignoreInvalidCookies": true,
+        "headers": _0x2c4edd
+      };
+    this.got = _0x8e0885.extend(_0x5069eb);
+    _0xdb6efe == 0 && _0x11cae0();
+  }
+  ["log"](_0x493cba, _0x452fe5 = {}) {
+    var _0x567ff8 = "",
+      _0x1d5ec0 = _0x49dfef.userCount.toString().length;
+    this.index && (_0x567ff8 += "账号[" + _0x49dfef.padStr(this.index, _0x1d5ec0) + "]");
+    this.name && (_0x567ff8 += "[" + this.name + "]");
+    _0x49dfef.log(_0x567ff8 + _0x493cba, _0x452fe5);
+  }
+  ["set_cookie"](_0x5a17b2, _0x55db68, _0x11f17c, _0x1e7a6c, _0x3e9954 = {}) {
+    this.cookieJar.setCookieSync(_0x5a17b2 + "=" + _0x55db68 + "; Domain=" + _0x11f17c + ";", "" + _0x1e7a6c);
+  }
+  async ["request"](_0x5dffd5) {
+    const _0x37ac5c = ["ECONNRESET", "EADDRINUSE", "ENOTFOUND", "EAI_AGAIN"],
+      _0x2b4fd1 = ["TimeoutError"],
+      _0xab6ac9 = ["EPROTO"],
+      _0x875994 = [];
+    var _0x2ae6b5 = null,
+      _0x588da8 = 0,
+      _0x2c97d1 = _0x5dffd5.fn || _0x5dffd5.url;
+    let _0x5dfd65 = _0x49dfef.get(_0x5dffd5, "valid_code", _0x875994);
+    _0x5dffd5.method = _0x5dffd5?.["method"]?.["toUpperCase"]() || "GET";
+    let _0x3173c7, _0x2d079a;
+    while (_0x588da8 < _0x5a04a9) {
+      try {
+        _0x588da8++;
+        _0x3173c7 = "";
+        _0x2d079a = "";
+        let _0x56da93 = null,
+          _0x20fa96 = _0x5dffd5?.["timeout"] || this.got?.["defaults"]?.["options"]?.["timeout"]?.["request"] || _0x128624,
+          _0x372157 = false,
+          _0x329022 = Math.max(this.index - 2, 0),
+          _0xae873a = Math.min(Math.max(this.index - 3, 1), 3),
+          _0x1df6bf = Math.min(Math.max(this.index - 4, 1), 4),
+          _0x3dd9a2 = _0x329022 * _0xae873a * _0x1df6bf * 400,
+          _0x5c8e85 = _0x329022 * _0xae873a * _0x1df6bf * 1800,
+          _0x168d1c = _0x3dd9a2 + Math.floor(Math.random() * _0x5c8e85),
+          _0x43a74c = _0x300c8e * (_0x300c8e - 1) * 2000,
+          _0x6f7cc7 = (_0x300c8e - 1) * (_0x300c8e - 1) * 2000,
+          _0x410dd7 = _0x43a74c + Math.floor(Math.random() * _0x6f7cc7),
+          _0x37f92f = Math.max(_0x49dfef.userCount - 2, 0),
+          _0x29c518 = Math.max(_0x49dfef.userCount - 3, 0),
+          _0x4d7ea4 = _0x37f92f * 200,
+          _0x428995 = _0x29c518 * 400,
+          _0x5c5b4c = _0x4d7ea4 + Math.floor(Math.random() * _0x428995),
+          _0x169ad4 = _0x168d1c + _0x410dd7 + _0x5c5b4c;
+        await _0x49dfef.wait(_0x169ad4);
+        await new Promise(async _0x3fddf4 => {
+          setTimeout(() => {
+            _0x372157 = true;
+            _0x3fddf4();
+          }, _0x20fa96);
+          await this.got(_0x5dffd5).then(_0x209b82 => {
+            _0x2ae6b5 = _0x209b82;
+          }, _0x41c3d2 => {
+            _0x56da93 = _0x41c3d2;
+            _0x2ae6b5 = _0x41c3d2.response;
+            _0x3173c7 = _0x56da93?.["code"] || "";
+            _0x2d079a = _0x56da93?.["name"] || "";
+          });
+          _0x3fddf4();
+        });
+        if (_0x372157) this.log("[" + _0x2c97d1 + "]请求超时(" + _0x20fa96 / 1000 + "秒)，重试第" + _0x588da8 + "次");else {
+          if (_0xab6ac9.includes(_0x3173c7)) {
+            this.log("[" + _0x2c97d1 + "]请求错误[" + _0x3173c7 + "][" + _0x2d079a + "]");
+            if (_0x56da93?.["message"]) {
+              console.log(_0x56da93.message);
+            }
+            break;
+          } else {
+            if (_0x2b4fd1.includes(_0x2d079a)) {
+              this.log("[" + _0x2c97d1 + "]请求错误[" + _0x3173c7 + "][" + _0x2d079a + "]，重试第" + _0x588da8 + "次");
+            } else {
+              if (_0x37ac5c.includes(_0x3173c7)) {
+                this.log("[" + _0x2c97d1 + "]请求错误[" + _0x3173c7 + "][" + _0x2d079a + "]，重试第" + _0x588da8 + "次");
+              } else {
+                let _0x33b70b = _0x2ae6b5?.["statusCode"] || "",
+                  _0x289577 = _0x33b70b / 100 | 0;
+                if (_0x33b70b) {
+                  _0x289577 > 3 && !_0x5dfd65.includes(_0x33b70b) && (_0x33b70b ? this.log("请求[" + _0x2c97d1 + "]返回[" + _0x33b70b + "]") : this.log("请求[" + _0x2c97d1 + "]错误[" + _0x3173c7 + "][" + _0x2d079a + "]"));
+                  if (_0x289577 <= 4) break;
+                } else this.log("请求[" + _0x2c97d1 + "]错误[" + _0x3173c7 + "][" + _0x2d079a + "]");
+              }
+            }
+          }
+        }
+      } catch (_0x4c3a90) {
+        _0x4c3a90.name == "TimeoutError" ? this.log("[" + _0x2c97d1 + "]请求超时，重试第" + _0x588da8 + "次") : this.log("[" + _0x2c97d1 + "]请求错误(" + _0x4c3a90.message + ")，重试第" + _0x588da8 + "次");
+      }
+    }
+    const _0x493b70 = {
+      "statusCode": _0x3173c7 || -1,
+      "headers": null,
+      "result": null
+    };
+    if (_0x2ae6b5 == null) {
+      return Promise.resolve(_0x493b70);
+    }
+    let {
+      statusCode: _0x307ac9,
+      headers: _0x5205ad,
+      body: _0x3a9f48
+    } = _0x2ae6b5;
+    if (_0x3a9f48) {
+      try {
+        _0x3a9f48 = JSON.parse(_0x3a9f48);
+      } catch {}
+    }
+    const _0x37c203 = {
+      "statusCode": _0x307ac9,
+      "headers": _0x5205ad,
+      "result": _0x3a9f48
+    };
+    return Promise.resolve(_0x37c203);
+  }
+}
+let _0x280825 = _0x9d1851;
+try {
+  let _0x236d58 = require("./LocalBasic");
+  _0x280825 = _0x236d58;
+} catch {}
+let _0x3b1630 = new _0x280825(_0x49dfef);
+class _0x3f433d extends _0x280825 {
+  constructor(_0x4802c1) {
+    super(_0x49dfef);
+    let _0x2a7cbd = _0x4802c1.split("#");
+    this.name = _0x2a7cbd[0];
+    this.passwd = _0x2a7cbd?.[1] || "";
+    this.uuid = [_0x49dfef.randomPattern("xxxxxxxx"), _0x49dfef.randomPattern("xxxx"), _0x49dfef.randomPattern("4xxx"), _0x49dfef.randomPattern("xxxx"), _0x49dfef.randomPattern("xxxxxxxxxxxx")];
+    this.cookieJar = new _0x4f58d7();
+    this.can_feed = true;
+    this.jml_tokenFlag = "";
+    this.mall_token = "";
+    const _0xf01b6c = {
+      "Connection": "keep-alive",
+      "User-Agent": _0x3ed712
+    };
+    this.got = this.got.extend({
+      "cookieJar": this.cookieJar,
+      "headers": _0xf01b6c
+    });
+  }
+  ["load_token"]() {
+    let _0x14cf8a = false;
+    return _0x1d3d6d[this.name] && (this.userId = _0x1d3d6d[this.name].userId, this.token = _0x1d3d6d[this.name].token, this.log("读取到缓存token"), _0x14cf8a = true), _0x14cf8a;
+  }
+  ["encode_phone"]() {
+    let _0x266210 = this.name.split("");
+    for (let _0x5f797f in _0x266210) {
+      _0x266210[_0x5f797f] = String.fromCharCode(_0x266210[_0x5f797f].charCodeAt(0) + 2);
+    }
+    return _0x266210.join("");
+  }
+  ["encode_aes"](_0x47873f) {
+    return _0x1519a6("AES", "ECB", "Pkcs7", _0x47873f, _0x75a069, 0);
+  }
+  ["get_mall_headers"]() {
+    return {
+      "Content-Type": "application/json;charset=utf-8",
+      "Accept": "application/json, text/javascript, */*; q=0.01",
+      "Authorization": this.mall_token ? "Bearer " + this.mall_token : "",
+      "X-Requested-With": "XMLHttpRequest"
+    };
+  }
+  async ["login"](_0x568c8f = {}) {
+    let _0x172a21 = false;
+    try {
+      let _0x4709da = _0x49dfef.time("yyyyMMddhhmmss"),
+        _0x21d997 = "iPhone 14 15.4." + this.uuid.slice(0, 2).join("") + this.name + _0x4709da + this.passwd + "0$$$0.",
+        _0x1b5e27 = {
+          "fn": "login",
+          "method": "post",
+          "url": "https://appgologin.189.cn:9031/login/client/userLoginNormal",
+          "json": {
+            "headerInfos": {
+              "code": "userLoginNormal",
+              "timestamp": _0x4709da,
+              "broadAccount": "",
+              "broadToken": "",
+              "clientType": "#9.6.1#channel50#iPhone 14 Pro Max#",
+              "shopId": "20002",
+              "source": "110003",
+              "sourcePassword": "Sid98s",
+              "token": "",
+              "userLoginName": this.name
+            },
+            "content": {
+              "attach": "test",
+              "fieldData": {
+                "loginType": "4",
+                "accountType": "",
+                "loginAuthCipherAsymmertric": _0x13a631.encrypt(_0x21d997, "base64"),
+                "deviceUid": this.uuid.slice(0, 3).join(""),
+                "phoneNum": this.encode_phone(),
+                "isChinatelecom": "0",
+                "systemVersion": "15.4.0",
+                "authentication": this.passwd
+              }
+            }
+          }
+        },
+        {
+          result: _0x44e3e2,
+          statusCode: _0x15338e
+        } = await this.request(_0x1b5e27),
+        _0x5d0534 = _0x49dfef.get(_0x44e3e2?.["responseData"], "resultCode", -1);
+      console.log("Request Content:", requestBody.content);
+      if (_0x5d0534 == "0000") {
+        let {
+          userId = "",
+          token = ""
+        } = _0x44e3e2?.["responseData"]?.["data"]?.["loginSuccessResult"] || {};
+        this.userId = userId;
+        this.token = token;
+        this.log("使用服务密码登录成功");
+        _0x1d3d6d[this.name] = {
+          "token": token,
+          "userId": userId,
+          "t": Date.now()
+        };
+        _0x4e4355();
+        _0x172a21 = true;
+      } else {
+        let _0x4d711e = _0x44e3e2?.["msg"] || _0x44e3e2?.["responseData"]?.["resultDesc"] || _0x44e3e2?.["headerInfos"]?.["reason"] || "";
+        this.log("服务密码登录失败[" + _0x5d0534 + "]: " + _0x4d711e);
+      }
+    } catch (_0x2334e8) {
+      console.log(_0x2334e8);
+    } finally {
+      return _0x172a21;
+    }
+  }
+  async ["get_ticket"](_0x292809 = {}) {
+    let _0x3ff995 = "";
+    try {
+      let _0x495fa7 = "\n            <Request>\n                <HeaderInfos>\n                    <Code>getSingle</Code>\n                    <Timestamp>" + _0x49dfef.time("yyyyMMddhhmmss") + "</Timestamp>\n                    <BroadAccount></BroadAccount>\n                    <BroadToken></BroadToken>\n                    <ClientType>#9.6.1#channel50#iPhone 14 Pro Max#</ClientType>\n                    <ShopId>20002</ShopId>\n                    <Source>110003</Source>\n                    <SourcePassword>Sid98s</SourcePassword>\n                    <Token>" + this.token + "</Token>\n                    <UserLoginName>" + this.name + "</UserLoginName>\n                </HeaderInfos>\n                <Content>\n                    <Attach>test</Attach>\n                    <FieldData>\n                        <TargetId>" + _0x1519a6("TripleDES", "CBC", "Pkcs7", this.userId, _0x2304b1, _0x1110eb) + "</TargetId>\n                        <Url>4a6862274835b451</Url>\n                    </FieldData>\n                </Content>\n            </Request>";
+      const _0xd42d5c = {
+        "fn": "get_ticket",
+        "method": "post",
+        "url": "https://appgologin.189.cn:9031/map/clientXML",
+        "body": _0x495fa7
+      };
+      let {
+        result: _0x364c7d,
+        statusCode: _0xd880be
+      } = await this.request(_0xd42d5c);
+      if (_0x364c7d) {
+        let _0x18bfb2 = _0x364c7d.match(/\<Ticket\>(\w+)\<\/Ticket\>/);
+        if (_0x18bfb2) {
+          let _0x33b8c5 = _0x18bfb2[1];
+          _0x3ff995 = _0x436a1e("TripleDES", "CBC", "Pkcs7", _0x33b8c5, _0x2304b1, _0x1110eb);
+          this.ticket = _0x3ff995;
+        }
+      }
+      !_0x3ff995 && (!_0x292809.retry && (await this.login()) ? (_0x292809.retry = true, _0x3ff995 = await this.get_ticket(_0x292809)) : (this.log("没有获取到ticket[" + _0xd880be + "]: "), _0x364c7d && this.log(": " + JSON.stringify(_0x364c7d))));
+    } catch (_0x28f8f2) {
+      console.log(_0x28f8f2);
+    } finally {
+      return _0x3ff995;
+    }
+  }
+  async ["get_sign"](_0xd5e98b = {}) {
+    let _0x3728d3 = false;
+    try {
+      const _0x228472 = {
+          "ticket": this.ticket
+        },
+        _0x1dce3c = {
+          "fn": "login",
+          "method": "get",
+          "url": "https://wapside.189.cn:9001/jt-sign/ssoHomLogin",
+          "searchParams": _0x228472
+        };
+      let {
+          result: _0x5b193e,
+          statusCode: _0x5f0725
+        } = await this.request(_0x1dce3c),
+        _0x29efdb = _0x49dfef.get(_0x5b193e, "resoultCode", _0x5f0725);
+      _0x29efdb == 0 ? (_0x3728d3 = _0x5b193e?.["sign"], this.sign = _0x3728d3, this.got = this.got.extend({
+        "headers": {
+          "sign": this.sign
+        }
+      })) : this.log("获取sign失败[" + _0x29efdb + "]: " + _0x5b193e);
+    } catch (_0x2f28bb) {
+      console.log(_0x2f28bb);
+    } finally {
+      return _0x3728d3;
+    }
+  }
+  ["encrypt_para"](_0x2ea382) {
+    let _0x4ed84a = typeof _0x2ea382 == "string" ? _0x2ea382 : JSON.stringify(_0x2ea382);
+    return _0x47bb4b.encrypt(_0x4ed84a, "hex");
+  }
+  async ["userCoinInfo"](_0x124ec9 = false, _0x1a1cc3 = {}) {
+    try {
+      const _0x374d94 = {
+        "phone": this.name
+      };
+      let _0x4e6fdd = {
+          "fn": "userCoinInfo",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/api/home/userCoinInfo",
+          "json": {
+            "para": this.encrypt_para(_0x374d94)
+          }
+        },
+        {
+          result: _0x32da86,
+          statusCode: _0x1e20fc
+        } = await this.request(_0x4e6fdd),
+        _0x416871 = _0x49dfef.get(_0x32da86, "resoultCode", _0x1e20fc);
+      if (_0x416871 == 0) {
+        this.coin = _0x32da86?.["totalCoin"] || 0;
+        if (_0x124ec9) {
+          const _0x4aa23f = {
+            "notify": true
+          };
+          this.log("金豆余额: " + this.coin, _0x4aa23f);
+          if (_0x32da86.amountEx) {
+            let _0x1afe63 = _0x49dfef.time("yyyy-MM-dd", _0x32da86.expireDate);
+            const _0x171701 = {
+              "notify": true
+            };
+            _0x49dfef.log("-- [" + _0x1afe63 + "]将过期" + _0x32da86.amountEx + "金豆", _0x171701);
+          }
+        }
+      } else {
+        let _0x5dd2dd = _0x32da86?.["msg"] || _0x32da86?.["resoultMsg"] || _0x32da86?.["error"] || "";
+        this.log("查询账户金豆余额错误[" + _0x416871 + "]: " + _0x5dd2dd);
+      }
+    } catch (_0x46ed9f) {
+      console.log(_0x46ed9f);
+    }
+  }
+  async ["userStatusInfo"](_0xc9a8b1 = {}) {
+    try {
+      const _0x27024b = {
+        "phone": this.name
+      };
+      let _0x46d7e7 = {
+        "fn": "userStatusInfo",
+        "method": "post",
+        "url": "https://wapside.189.cn:9001/jt-sign/api/home/userStatusInfo",
+        "json": {
+          "para": this.encrypt_para(_0x27024b)
+        }
+      };
+      {
+        let {
+            result: _0x7c79f6,
+            statusCode: _0x5610ae
+          } = await this.request(_0x49dfef.copy(_0x46d7e7)),
+          _0x4b983e = _0x49dfef.get(_0x7c79f6, "resoultCode", _0x5610ae);
+        if (_0x4b983e == 0) {
+          let {
+            isSign: _0x577fdd
+          } = _0x7c79f6?.["data"];
+          _0x577fdd ? this.log("今天已签到") : await this.doSign();
+        } else {
+          let _0x16239c = _0x7c79f6?.["msg"] || _0x7c79f6?.["resoultMsg"] || _0x7c79f6?.["error"] || "";
+          this.log("查询账户签到状态错误[" + _0x4b983e + "]: " + _0x16239c);
+        }
+      }
+      {
+        let {
+            result: _0x2cb917,
+            statusCode: _0x42a823
+          } = await this.request(_0x49dfef.copy(_0x46d7e7)),
+          _0x11fe96 = _0x49dfef.get(_0x2cb917, "resoultCode", _0x42a823);
+        if (_0x11fe96 == 0) {
+          let {
+            continuousDay: _0xf63027,
+            signDay: _0x5a3e70,
+            isSeven: _0x434ea0
+          } = _0x2cb917?.["data"];
+          this.log("已签到" + _0x5a3e70 + "天, 连签" + _0xf63027 + "天");
+          _0x434ea0 && (await this.exchangePrize());
+        } else {
+          let _0x57bd0e = _0x2cb917?.["msg"] || _0x2cb917?.["resoultMsg"] || _0x2cb917?.["error"] || "";
+          this.log("查询账户签到状态错误[" + _0x11fe96 + "]: " + _0x57bd0e);
+        }
+      }
+    } catch (_0x70a9ad) {
+      console.log(_0x70a9ad);
+    }
+  }
+  async ["continueSignDays"](_0x57126c = {}) {
+    try {
+      const _0x1396f4 = {
+        "phone": this.name
+      };
+      let _0x40ec16 = {
+          "fn": "continueSignDays",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/continueSignDays",
+          "json": {
+            "para": this.encrypt_para(_0x1396f4)
+          }
+        },
+        {
+          result: _0xd56803,
+          statusCode: _0x133cba
+        } = await this.request(_0x40ec16),
+        _0x5ecdbe = _0x49dfef.get(_0xd56803, "resoultCode", _0x133cba);
+      if (_0x5ecdbe == 0) {
+        this.log("抽奖连签天数: " + (_0xd56803?.["continueSignDays"] || 0) + "天");
+        if (_0xd56803?.["continueSignDays"] == 15) {
+          const _0x1e4b5b = {
+            "type": "15"
+          };
+          await this.exchangePrize(_0x1e4b5b);
+        } else {
+          if (_0xd56803?.["continueSignDays"] == 28) {
+            const _0x5bc07e = {
+              "type": "28"
+            };
+            await this.exchangePrize(_0x5bc07e);
+          }
+        }
+      } else {
+        let _0x4e6817 = _0xd56803?.["msg"] || _0xd56803?.["resoultMsg"] || _0xd56803?.["error"] || "";
+        this.log("查询抽奖连签天数错误[" + _0x5ecdbe + "]: " + _0x4e6817);
+      }
+    } catch (_0x52cdc8) {
+      console.log(_0x52cdc8);
+    }
+  }
+  async ["continueSignRecords"](_0x2891d4 = {}) {
+    try {
+      const _0x2228e1 = {
+        "phone": this.name
+      };
+      let _0x49e887 = {
+          "fn": "continueSignRecords",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/continueSignRecords",
+          "json": {
+            "para": this.encrypt_para(_0x2228e1)
+          }
+        },
+        {
+          result: _0x1dd52d,
+          statusCode: _0x274d64
+        } = await this.request(_0x49e887),
+        _0xb167e6 = _0x49dfef.get(_0x1dd52d, "resoultCode", _0x274d64);
+      if (_0xb167e6 == 0) {
+        if (_0x1dd52d?.["continue15List"]?.["length"]) {
+          const _0x16fcf5 = {
+            "type": "15"
+          };
+          await this.exchangePrize(_0x16fcf5);
+        }
+        if (_0x1dd52d?.["continue28List"]?.["length"]) {
+          const _0x52fb63 = {
+            "type": "28"
+          };
+          await this.exchangePrize(_0x52fb63);
+        }
+      } else {
+        let _0x3090eb = _0x1dd52d?.["msg"] || _0x1dd52d?.["resoultMsg"] || _0x1dd52d?.["error"] || "";
+        this.log("查询连签抽奖状态错误[" + _0xb167e6 + "]: " + _0x3090eb);
+      }
+    } catch (_0x2bc775) {
+      console.log(_0x2bc775);
+    }
+  }
+  async ["doSign"](_0x1b376e = {}) {
+    try {
+      let _0x3e8ed4 = {
+          "phone": this.name,
+          "date": Date.now(),
+          "sysType": "20002"
+        },
+        _0x405845 = {
+          "fn": "doSign",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/sign",
+          "json": {
+            "encode": this.encode_aes(JSON.stringify(_0x3e8ed4))
+          }
+        },
+        {
+          result: _0x380f07,
+          statusCode: _0x36d52d
+        } = await this.request(_0x405845),
+        _0x3b877d = _0x49dfef.get(_0x380f07, "resoultCode", _0x36d52d);
+      if (_0x3b877d == 0) {
+        let _0x5bf6a1 = _0x49dfef.get(_0x380f07?.["data"], "code", -1);
+        if (_0x5bf6a1 == 1) {
+          const _0x13fbb6 = {
+            "notify": true
+          };
+          this.log("签到成功，获得" + (_0x380f07?.["data"]?.["coin"] || 0) + "金豆", _0x13fbb6);
+          await this.userStatusInfo();
+        } else {
+          const _0x106dcf = {
+            "notify": true
+          };
+          this.log("签到失败[" + _0x5bf6a1 + "]: " + _0x380f07.data.msg, _0x106dcf);
+        }
+      } else {
+        let _0x4cd1a1 = _0x380f07?.["msg"] || _0x380f07?.["resoultMsg"] || _0x380f07?.["error"] || "";
+        this.log("签到错误[" + _0x3b877d + "]: " + _0x4cd1a1);
+      }
+    } catch (_0x591e48) {
+      console.log(_0x591e48);
+    }
+  }
+  async ["exchangePrize"](_0x1959e6 = {}) {
+    try {
+      let _0x22bbfa = _0x49dfef.pop(_0x1959e6, "type", "7");
+      const _0x20ec8c = {
+        "phone": this.name,
+        "type": _0x22bbfa
+      };
+      let _0x1ca191 = {
+          "fn": "exchangePrize",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/exchangePrize",
+          "json": {
+            "para": this.encrypt_para(_0x20ec8c)
+          }
+        },
+        {
+          result: _0x4217e1,
+          statusCode: _0x4d9c82
+        } = await this.request(_0x1ca191),
+        _0x9afc2f = _0x49dfef.get(_0x4217e1, "resoultCode", _0x4d9c82);
+      if (_0x9afc2f == 0) {
+        let _0x28f1fc = _0x49dfef.get(_0x4217e1?.["prizeDetail"], "code", -1);
+        if (_0x28f1fc == 0) {
+          const _0x3a457e = {
+            "notify": true
+          };
+          this.log("连签" + _0x22bbfa + "天抽奖: " + _0x4217e1?.["prizeDetail"]?.["biz"]?.["winTitle"], _0x3a457e);
+        } else {
+          let _0x8e62fe = _0x4217e1?.["prizeDetail"]?.["err"] || "";
+          const _0x1e3693 = {
+            "notify": true
+          };
+          this.log("连签" + _0x22bbfa + "天抽奖失败[" + _0x28f1fc + "]: " + _0x8e62fe, _0x1e3693);
+        }
+      } else {
+        let _0x32f43a = _0x4217e1?.["msg"] || _0x4217e1?.["resoultMsg"] || _0x4217e1?.["error"] || "";
+        this.log("连签" + _0x22bbfa + "天抽奖错误[" + _0x9afc2f + "]: " + _0x32f43a);
+      }
+    } catch (_0x5751a7) {
+      console.log(_0x5751a7);
+    }
+  }
+  async ["homepage"](_0x7f393b, _0x27b6dc = {}) {
+    try {
+      const _0x91f4c = {
+        "phone": this.name,
+        "shopId": "20001",
+        "type": _0x7f393b
+      };
+      let _0x3c66e4 = {
+          "fn": "homepage",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/homepage",
+          "json": {
+            "para": this.encrypt_para(_0x91f4c)
+          }
+        },
+        {
+          result: _0x2bd358,
+          statusCode: _0x15ab0e
+        } = await this.request(_0x3c66e4),
+        _0x1ebbf3 = _0x49dfef.get(_0x2bd358, "resoultCode", _0x15ab0e);
+      if (_0x1ebbf3 == 0) {
+        let _0x31f344 = _0x49dfef.get(_0x2bd358?.["data"]?.["head"], "code", -1);
+        if (_0x31f344 == 0) for (let _0x1e9c0b of _0x2bd358?.["data"]?.["biz"]?.["adItems"] || []) {
+          if (["0", "1"].includes(_0x1e9c0b?.["taskState"])) switch (_0x1e9c0b.contentOne) {
+            case "3":
+              {
+                _0x1e9c0b?.["rewardId"] && (await this.receiveReward(_0x1e9c0b));
+                break;
+              }
+            case "5":
+              {
+                await this.openMsg(_0x1e9c0b);
+                break;
+              }
+            case "6":
+              {
+                await this.sharingGetGold();
+                break;
+              }
+            case "10":
+            case "13":
+              {
+                !this.xtoken && (await this.get_usercode());
+                this.xtoken && (await this.watchLiveInit());
+                break;
+              }
+            case "18":
+              {
+                await this.polymerize(_0x1e9c0b);
+                break;
+              }
+            default:
+              {
+                break;
+              }
+          }
+        } else {
+          let _0x24468f = _0x2bd358?.["data"]?.["head"]?.["err"] || "";
+          this.log("获取任务列表失败[" + _0x31f344 + "]: " + _0x24468f);
+        }
+      } else this.log("获取任务列表错误[" + _0x1ebbf3 + "]");
+    } catch (_0x590aa6) {
+      console.log(_0x590aa6);
+    }
+  }
+  async ["receiveReward"](_0x484772, _0x43564a = {}) {
+    try {
+      let _0x22887b = _0x484772?.["title"]?.["split"](" ")?.[0];
+      const _0x550f47 = {
+        "phone": this.name,
+        "rewardId": _0x484772?.["rewardId"] || ""
+      };
+      let _0x2463d2 = {
+          "fn": "receiveReward",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/receiveReward",
+          "json": {
+            "para": this.encrypt_para(_0x550f47)
+          }
+        },
+        {
+          result: _0x1de7a2,
+          statusCode: _0x5b6ad9
+        } = await this.request(_0x2463d2),
+        _0x124e90 = _0x49dfef.get(_0x1de7a2, "resoultCode", _0x5b6ad9);
+      if (_0x124e90 == 0) this.log("领取任务[" + _0x22887b + "]奖励成功: " + _0x1de7a2?.["resoultMsg"]);else {
+        let _0x20a521 = _0x1de7a2?.["msg"] || _0x1de7a2?.["resoultMsg"] || _0x1de7a2?.["error"] || "";
+        this.log("领取任务[" + _0x22887b + "]奖励错误[" + _0x124e90 + "]: " + _0x20a521);
+      }
+    } catch (_0x25a11e) {
+      console.log(_0x25a11e);
+    }
+  }
+  async ["openMsg"](_0x308623, _0x14e0b8 = {}) {
+    try {
+      let _0x435287 = _0x308623?.["title"]?.["split"](" ")?.[0];
+      const _0x13404e = {
+        "phone": this.name
+      };
+      let _0x34d20f = {
+          "fn": "openMsg",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/openMsg",
+          "json": {
+            "para": this.encrypt_para(_0x13404e)
+          }
+        },
+        {
+          result: _0x546705,
+          statusCode: _0x2eb743
+        } = await this.request(_0x34d20f),
+        _0x313ba3 = _0x49dfef.get(_0x546705, "resoultCode", _0x2eb743);
+      if (_0x313ba3 == 0) this.log("完成任务[" + _0x435287 + "]成功: " + _0x546705?.["resoultMsg"]);else {
+        let _0x301d94 = _0x546705?.["msg"] || _0x546705?.["resoultMsg"] || _0x546705?.["error"] || "";
+        this.log("完成任务[" + _0x435287 + "]错误[" + _0x313ba3 + "]: " + _0x301d94);
+      }
+    } catch (_0x47faa9) {
+      console.log(_0x47faa9);
+    }
+  }
+  async ["polymerize"](_0x7882f8, _0x3307f2 = {}) {
+    try {
+      let _0x57f3b6 = _0x7882f8?.["title"]?.["split"](" ")?.[0];
+      const _0x588ba0 = {
+        "phone": this.name,
+        "jobId": _0x7882f8.taskId
+      };
+      let _0x32f651 = {
+          "fn": "polymerize",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/webSign/polymerize",
+          "json": {
+            "para": this.encrypt_para(_0x588ba0)
+          }
+        },
+        {
+          result: _0x55f4ae,
+          statusCode: _0x12bcb6
+        } = await this.request(_0x32f651),
+        _0xe96682 = _0x49dfef.get(_0x55f4ae, "resoultCode", _0x12bcb6);
+      if (_0xe96682 == 0) this.log("完成任务[" + _0x57f3b6 + "]成功: " + _0x55f4ae?.["resoultMsg"]);else {
+        let _0x3c85b6 = _0x55f4ae?.["msg"] || _0x55f4ae?.["resoultMsg"] || _0x55f4ae?.["error"] || "";
+        this.log("完成任务[" + _0x57f3b6 + "]错误[" + _0xe96682 + "]: " + _0x3c85b6);
+      }
+    } catch (_0x364b16) {
+      console.log(_0x364b16);
+    }
+  }
+  async ["food"](_0x72be45, _0x385563 = {}) {
+    try {
+      const _0x43c1bd = {
+        "phone": this.name
+      };
+      let _0x222dd0 = {
+          "fn": "food",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/food",
+          "json": {
+            "para": this.encrypt_para(_0x43c1bd)
+          }
+        },
+        {
+          result: _0x57feb0,
+          statusCode: _0x11f22b
+        } = await this.request(_0x222dd0),
+        _0x5ef41d = _0x49dfef.get(_0x57feb0, "resoultCode", _0x11f22b);
+      if (_0x5ef41d == 0) {
+        this.log("第" + _0x72be45 + "次喂食: " + (_0x57feb0?.["resoultMsg"] || "成功"));
+        if (_0x57feb0?.["levelUp"]) {
+          let _0x4ca17a = _0x57feb0?.["currLevelRightList"][0]?.["level"];
+          const _0xd3dda5 = {
+            "notify": true
+          };
+          this.log("宠物已升级到[LV." + _0x4ca17a + "], 获得: " + _0x57feb0?.["currLevelRightList"][0]?.["righstName"], _0xd3dda5);
+        }
+      } else {
+        let _0x5ba722 = _0x57feb0?.["msg"] || _0x57feb0?.["resoultMsg"] || _0x57feb0?.["error"] || "";
+        this.log("第" + _0x72be45 + "次喂食失败[" + _0x5ef41d + "]: " + _0x5ba722);
+        _0x5ba722?.["includes"]("最大喂食次数") && (this.can_feed = false);
+      }
+    } catch (_0x27040d) {
+      console.log(_0x27040d);
+    }
+  }
+  async ["getParadiseInfo"](_0x4d05b5 = {}) {
+    try {
+      const _0x125538 = {
+        "phone": this.name
+      };
+      let _0x270bb1 = {
+        "fn": "getParadiseInfo",
+        "method": "post",
+        "url": "https://wapside.189.cn:9001/jt-sign/paradise/getParadiseInfo",
+        "json": {
+          "para": this.encrypt_para(_0x125538)
+        }
+      };
+      {
+        let {
+            result: _0x364c07,
+            statusCode: _0xcdef27
+          } = await this.request(_0x270bb1),
+          _0x48e40c = _0x49dfef.get(_0x364c07, "resoultCode", _0xcdef27);
+        if (_0x48e40c == 0) {
+          let _0x4a27b8 = _0x364c07?.["userInfo"]?.["levelInfoMap"];
+          this.level = _0x4a27b8?.["level"];
+          for (let _0xfc2d56 = 1; _0xfc2d56 <= 10 && this.can_feed; _0xfc2d56++) {
+            await this.food(_0xfc2d56);
+          }
+        } else {
+          let _0x10b0a2 = _0x364c07?.["msg"] || _0x364c07?.["resoultMsg"] || _0x364c07?.["error"] || "";
+          this.log("查询宠物等级失败[" + _0x48e40c + "]: " + _0x10b0a2);
+          return;
+        }
+      }
+      {
+        let {
+            result: _0x2d4c9d,
+            statusCode: _0x32822d
+          } = await this.request(_0x270bb1),
+          _0x33231c = _0x49dfef.get(_0x2d4c9d, "resoultCode", _0x32822d);
+        if (_0x33231c == 0) {
+          let _0x587dfa = _0x2d4c9d?.["userInfo"]?.["levelInfoMap"];
+          this.level = _0x587dfa?.["level"];
+          const _0x4a392a = {
+            "notify": true
+          };
+          this.log("宠物等级[Lv." + _0x587dfa?.["level"] + "], 升级进度: " + _0x587dfa?.["growthValue"] + "/" + _0x587dfa?.["fullGrowthCoinValue"], _0x4a392a);
+        } else {
+          let _0xc04dee = _0x2d4c9d?.["msg"] || _0x2d4c9d?.["resoultMsg"] || _0x2d4c9d?.["error"] || "";
+          this.log("查询宠物等级失败[" + _0x33231c + "]: " + _0xc04dee);
+          return;
+        }
+      }
+    } catch (_0x4f7ada) {
+      console.log(_0x4f7ada);
+    }
+  }
+  async ["getLevelRightsList"](_0x25055f = {}) {
+    try {
+      const _0xd28e8a = {
+        "phone": this.name
+      };
+      let _0x8f5d11 = {
+          "fn": "getLevelRightsList",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/getLevelRightsList",
+          "json": {
+            "para": this.encrypt_para(_0xd28e8a)
+          }
+        },
+        {
+          result: _0x364382,
+          statusCode: _0x49ed45
+        } = await this.request(_0x8f5d11);
+      if (_0x364382?.["currentLevel"]) {
+        let _0x51ee3a = _0x364382?.["currentLevel"] || 6,
+          _0x1a4b17 = false,
+          _0x3a1b27 = "V" + _0x51ee3a;
+        for (let _0x2f7780 of _0x364382[_0x3a1b27] || []) {
+          let _0x583017 = _0x2f7780?.["righstName"] || "";
+          if (this.coin < _0x2f7780.costCoin) continue;
+          (_0x583017?.["match"](/\d+元话费/) || _0x583017?.["match"](/专享\d+金豆/)) && (await this.getConversionRights(_0x2f7780, _0x1a4b17)) && (_0x1a4b17 = true);
+        }
+      } else {
+        let _0x369c9d = _0x364382?.["msg"] || _0x364382?.["resoultMsg"] || _0x364382?.["error"] || "";
+        this.log("查询宠物兑换权益失败: " + _0x369c9d);
+      }
+    } catch (_0x2b311a) {
+      console.log(_0x2b311a);
+    }
+  }
+  async ["getConversionRights"](_0x4ff23b, _0x4050ac, _0x214824 = {}) {
+    let _0x454e1a = false;
+    try {
+      let _0x3ea063 = _0x4ff23b?.["righstName"] || "";
+      const _0x404f21 = {
+        "phone": this.name,
+        "rightsId": _0x4ff23b.id,
+        "receiveCount": _0x4ff23b.receiveType
+      };
+      let _0x3098ed = {
+          "fn": "getConversionRights",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/getConversionRights",
+          "json": {
+            "para": this.encrypt_para(_0x404f21)
+          }
+        },
+        {
+          result: _0x269ce8,
+          statusCode: _0x209b41
+        } = await this.request(_0x3098ed),
+        _0x411acf = _0x49dfef.get(_0x269ce8, "code", _0x49dfef.get(_0x269ce8, "resoultCode", _0x209b41));
+      if (_0x411acf == 200) !(_0x269ce8?.["rightsStatus"]?.["includes"]("已兑换") || _0x269ce8?.["rightsStatus"]?.["includes"]("已领取")) && (_0x454e1a = true, _0x4050ac && (await _0x49dfef.wait(3000)), await this.conversionRights(_0x4ff23b));else {
+        let _0x465ea5 = _0x269ce8?.["msg"] || _0x269ce8?.["resoultMsg"] || _0x269ce8?.["error"] || "";
+        this.log("查询权益[" + _0x3ea063 + "]失败[" + _0x411acf + "]: " + _0x465ea5);
+      }
+    } catch (_0x4b949e) {
+      console.log(_0x4b949e);
+    } finally {
+      return _0x454e1a;
+    }
+  }
+  async ["conversionRights"](_0xd4165b, _0x5b8c93 = {}) {
+    try {
+      let _0x5e50ea = _0xd4165b?.["righstName"] || "";
+      const _0x53587c = {
+        "phone": this.name,
+        "rightsId": _0xd4165b.id
+      };
+      let _0x4edcac = {
+          "fn": "conversionRights",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/paradise/conversionRights",
+          "json": {
+            "para": this.encrypt_para(_0x53587c)
+          }
+        },
+        {
+          result: _0x217a7d,
+          statusCode: _0x3b6d01
+        } = await this.request(_0x4edcac),
+        _0x57dbd8 = _0x49dfef.get(_0x217a7d, "resoultCode", _0x3b6d01);
+      if (_0x57dbd8 == 0) this.log("兑换权益[" + _0x5e50ea + "]成功");else {
+        let _0xc27682 = _0x217a7d?.["msg"] || _0x217a7d?.["resoultMsg"] || _0x217a7d?.["error"] || "";
+        this.log("兑换权益[" + _0x5e50ea + "]失败[" + _0x57dbd8 + "]: " + _0xc27682);
+      }
+    } catch (_0x2097ee) {
+      console.log(_0x2097ee);
+    }
+  }
+  async ["get_usercode"](_0x36cb85 = {}) {
+    try {
+      const _0x2ae7b6 = {
+        "fn": "get_usercode",
+        "method": "get",
+        "url": "https://xbk.189.cn/xbkapi/api/auth/jump",
+        "searchParams": {}
+      };
+      _0x2ae7b6.searchParams.userID = this.ticket;
+      _0x2ae7b6.searchParams.version = "9.3.3";
+      _0x2ae7b6.searchParams.type = "room";
+      _0x2ae7b6.searchParams.l = "renwu";
+      let {
+          statusCode: _0x552d62,
+          headers: _0x17ddd9
+        } = await this.request(_0x2ae7b6),
+        _0x5e7123 = _0x17ddd9?.["location"]?.["match"](/usercode=(\w+)/);
+      _0x5e7123 ? await this.codeToken(_0x5e7123[1]) : this.log("获取code失败[" + _0x552d62 + "]");
+    } catch (_0x4506f4) {
+      console.log(_0x4506f4);
+    }
+  }
+  async ["codeToken"](_0x3fd610, _0x480835 = {}) {
+    try {
+      const _0x269098 = {
+          "usercode": _0x3fd610
+        },
+        _0x1649f3 = {
+          "fn": "codeToken",
+          "method": "post",
+          "url": "https://xbk.189.cn/xbkapi/api/auth/userinfo/codeToken",
+          "json": _0x269098
+        };
+      let {
+          result: _0x13a1e8,
+          statusCode: _0x2966c4
+        } = await this.request(_0x1649f3),
+        _0x2d1b25 = _0x49dfef.get(_0x13a1e8, "code", -1);
+      if (_0x2d1b25 == 0) this.xtoken = _0x13a1e8?.["data"]?.["token"], this.got = this.got.extend({
+        "headers": {
+          "Authorization": "Bearer " + _0x5b4189.encrypt(this.xtoken, "base64")
+        }
+      });else {
+        let _0xc5b03f = _0x13a1e8?.["msg"] || _0x13a1e8?.["resoultMsg"] || _0x13a1e8?.["error"] || _0x13a1e8?.["msg"] || "";
+        this.log("获取token失败[" + _0x2d1b25 + "]: " + _0xc5b03f);
+      }
+    } catch (_0x4998c4) {
+      console.log(_0x4998c4);
+    }
+  }
+  async ["watchLiveInit"](_0x22b256 = {}) {
+    try {
+      let _0x15d470 = Math.floor(Math.random() * 1000) + 1000;
+      const _0xe5bd8a = {
+          "period": 1,
+          "liveId": _0x15d470
+        },
+        _0x346d56 = {
+          "fn": "watchLiveInit",
+          "method": "post",
+          "url": "https://xbk.189.cn/xbkapi/lteration/liveTask/index/watchLiveInit",
+          "json": _0xe5bd8a
+        };
+      let {
+          result: _0x1ba8ea,
+          statusCode: _0x490ef0
+        } = await this.request(_0x346d56),
+        _0xf9de31 = _0x49dfef.get(_0x1ba8ea, "code", -1);
+      if (_0xf9de31 == 0) await _0x49dfef.wait(15000), await this.watchLive(_0x15d470, _0x1ba8ea?.["data"]);else {
+        let _0x5ad16a = _0x1ba8ea?.["msg"] || _0x1ba8ea?.["resoultMsg"] || _0x1ba8ea?.["error"] || _0x1ba8ea?.["msg"] || "";
+        this.log("开始观看直播[" + _0x15d470 + "]失败[" + _0xf9de31 + "]: " + _0x5ad16a);
+      }
+    } catch (_0x6620d2) {
+      console.log(_0x6620d2);
+    }
+  }
+  async ["watchLive"](_0x155ade, _0x2e794f, _0x399361 = {}) {
+    try {
+      const _0x46e134 = {
+          "period": 1,
+          "liveId": _0x155ade,
+          "key": _0x2e794f
+        },
+        _0x162a9f = {
+          "fn": "watchLive",
+          "method": "post",
+          "url": "https://xbk.189.cn/xbkapi/lteration/liveTask/index/watchLive",
+          "json": _0x46e134
+        };
+      let {
+          result: _0x58a2c2,
+          statusCode: _0x28c79a
+        } = await this.request(_0x162a9f),
+        _0x43b0ad = _0x49dfef.get(_0x58a2c2, "code", -1);
+      if (_0x43b0ad == 0) {
+        this.log("观看直播[" + _0x155ade + "]成功");
+        await this.watchLiveInit();
+      } else {
+        let _0x52c0bd = _0x58a2c2?.["msg"] || _0x58a2c2?.["resoultMsg"] || _0x58a2c2?.["error"] || _0x58a2c2?.["msg"] || "";
+        this.log("观看直播[" + _0x155ade + "]失败[" + _0x43b0ad + "]: " + _0x52c0bd);
+      }
+    } catch (_0x5f06a7) {
+      console.log(_0x5f06a7);
+    }
+  }
+  async ["watchVideo"](_0x5b78a0, _0x13a484 = {}) {
+    try {
+      const _0x16d39d = {
+          "articleId": _0x5b78a0
+        },
+        _0x4228bc = {
+          "fn": "watchVideo",
+          "method": "post",
+          "url": "https://xbk.189.cn/xbkapi/lteration/liveTask/index/watchVideo",
+          "json": _0x16d39d
+        };
+      let {
+          result: _0x358ce9,
+          statusCode: _0xf3d4e1
+        } = await this.request(_0x4228bc),
+        _0x13d930 = _0x49dfef.get(_0x358ce9, "code", -1);
+      if (_0x13d930 == 0) this.log("观看短视频[" + _0x5b78a0 + "]成功");else {
+        let _0x57b36e = _0x358ce9?.["msg"] || _0x358ce9?.["resoultMsg"] || _0x358ce9?.["error"] || _0x358ce9?.["msg"] || "";
+        this.log("观看短视频[" + _0x5b78a0 + "]失败[" + _0x13d930 + "]: " + _0x57b36e);
+      }
+    } catch (_0x5400fa) {
+      console.log(_0x5400fa);
+    }
+  }
+  async ["like"](_0x24af05, _0x37e6bb = {}) {
+    try {
+      const _0x4419b8 = {
+          "account": this.name,
+          "liveId": _0x24af05
+        },
+        _0x5e1b1e = {
+          "fn": "like",
+          "method": "post",
+          "url": "https://xbk.189.cn/xbkapi/lteration/room/like",
+          "json": _0x4419b8
+        };
+      let {
+          result: _0x493800,
+          statusCode: _0x21c267
+        } = await this.request(_0x5e1b1e),
+        _0x2ddc71 = _0x49dfef.get(_0x493800, "code", -1);
+      if (_0x2ddc71 == 0) this.log("点赞直播间[" + _0x24af05 + "]成功");else {
+        let _0x1eef7d = _0x493800?.["msg"] || _0x493800?.["resoultMsg"] || _0x493800?.["error"] || _0x493800?.["msg"] || "";
+        this.log("点赞直播间[" + _0x24af05 + "]失败[" + _0x2ddc71 + "]: " + _0x1eef7d);
+      }
+    } catch (_0x5b3a48) {
+      console.log(_0x5b3a48);
+    }
+  }
+  async ["sharingGetGold"](_0x5b88d2 = {}) {
+    try {
+      let _0x5efb18 = {
+          "fn": "sharingGetGold",
+          "method": "post",
+          "url": "https://appfuwu.189.cn:9021/query/sharingGetGold",
+          "json": {
+            "headerInfos": {
+              "code": "sharingGetGold",
+              "timestamp": _0x49dfef.time("yyyyMMddhhmmss"),
+              "broadAccount": "",
+              "broadToken": "",
+              "clientType": "#9.6.1#channel50#iPhone 14 Pro Max#",
+              "shopId": "20002",
+              "source": "110003",
+              "sourcePassword": "Sid98s",
+              "token": this.token,
+              "userLoginName": this.name
+            },
+            "content": {
+              "attach": "test",
+              "fieldData": {
+                "shareSource": "3",
+                "userId": this.userId,
+                "account": this.encode_phone()
+              }
+            }
+          }
+        },
+        {
+          result: _0x3911dc,
+          statusCode: _0x5894d4
+        } = await this.request(_0x5efb18),
+        _0x56e72a = _0x49dfef.get(_0x3911dc?.["responseData"], "resultCode", -1);
+      if (_0x56e72a == "0000") {
+        this.log("分享成功");
+      } else {
+        let _0x1cfb22 = _0x3911dc?.["msg"] || _0x3911dc?.["responseData"]?.["resultDesc"] || _0x3911dc?.["error"] || _0x3911dc?.["msg"] || "";
+        this.log("分享失败[" + _0x56e72a + "]: " + _0x1cfb22);
+      }
+    } catch (_0x57f70b) {
+      console.log(_0x57f70b);
+    }
+  }
+  async ["month_jml_preCost"](_0x21101d = {}) {
+    try {
+      let _0xb8a79a = {
+          "fn": "month_jml_preCost",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/short/message/preCost",
+          "json": {
+            "phone": this.encode_aes(this.name),
+            "activityCode": "shortMesssge"
+          }
+        },
+        {
+          result: _0x1b00d0,
+          statusCode: _0x13073b
+        } = await this.request(_0xb8a79a),
+        _0x2d7a53 = _0x49dfef.get(_0x1b00d0, "resoultCode", _0x13073b);
+      if (_0x2d7a53 == 0) {
+        let _0x3be2d8 = _0x1b00d0?.["data"]?.["resoultMsg"] || "领取成功";
+        this.jml_tokenFlag = _0x1b00d0?.["resoultMsg"];
+        await this.month_jml_userCost(_0x3be2d8);
+        await this.month_jml_receive();
+        await this.month_jml_getCount();
+        await this.month_jml_refresh();
+      } else {
+        let _0x34c304 = _0x1b00d0?.["msg"] || _0x1b00d0?.["resoultMsg"] || _0x1b00d0?.["error"] || "";
+        this.log("每月见面礼登录失败[" + _0x2d7a53 + "]: " + _0x34c304);
+      }
+    } catch (_0x1b3d4d) {
+      console.log(_0x1b3d4d);
+    }
+  }
+  async ["month_jml_userCost"](_0x59f0bf, _0x2f9995 = {}) {
+    try {
+      let _0x4ca9e8 = {
+          "fn": "month_jml_userCost",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/short/message/userCost",
+          "json": {
+            "phone": this.encode_aes(this.name),
+            "activityCode": "shortMesssge",
+            "flag": this.jml_tokenFlag
+          }
+        },
+        {
+          result: _0x3cae5c,
+          statusCode: _0x334c8f
+        } = await this.request(_0x4ca9e8),
+        _0x2cfba7 = _0x49dfef.get(_0x3cae5c, "resoultCode", _0x334c8f);
+      if (_0x2cfba7 == 0) {
+        let _0x5e2568 = _0x3cae5c?.["data"]?.["map"](_0x37bca0 => "[" + _0x37bca0.pizeName + "]") || [];
+        this.log("见面礼" + _0x59f0bf + ": " + _0x5e2568.join(", "));
+      } else {
+        let _0x1303e7 = _0x3cae5c?.["msg"] || _0x3cae5c?.["resoultMsg"] || _0x3cae5c?.["error"] || "";
+        this.log("领取每月见面礼失败[" + _0x2cfba7 + "]: " + _0x1303e7);
+      }
+    } catch (_0x4eb69a) {
+      console.log(_0x4eb69a);
+    }
+  }
+  async ["month_jml_receive"](_0x1fe02e = {}) {
+    try {
+      const _0x36d622 = {
+        "phone": this.name,
+        "flag": this.jml_tokenFlag
+      };
+      let _0x88d2e0 = {
+          "fn": "month_jml_receive",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/lottery/receive",
+          "json": {
+            "para": this.encrypt_para(_0x36d622)
+          }
+        },
+        {
+          result: _0x4fae3b,
+          statusCode: _0xb82bff
+        } = await this.request(_0x88d2e0),
+        _0x1cee42 = _0x49dfef.get(_0x4fae3b, "code", -1);
+      if (_0x1cee42 == 0) {
+        this.log("领取APP抽奖次数成功");
+      } else {
+        let _0x54358e = _0x4fae3b?.["msg"] || _0x4fae3b?.["resoultMsg"] || _0x4fae3b?.["error"] || "";
+        this.log("领取APP抽奖次数失败[" + _0x1cee42 + "]: " + _0x54358e);
+      }
+    } catch (_0x4c334f) {
+      console.log(_0x4c334f);
+    }
+  }
+  async ["month_jml_getCount"](_0x27f558 = {}) {
+    try {
+      const _0x34c369 = {
+        "phone": this.name,
+        "flag": this.jml_tokenFlag
+      };
+      let _0x5e4bbc = {
+          "fn": "month_jml_getCount",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/lottery/getCount",
+          "json": {
+            "para": this.encrypt_para(_0x34c369)
+          }
+        },
+        {
+          result: _0xe0e8f,
+          statusCode: _0xad206a
+        } = await this.request(_0x5e4bbc),
+        _0x4c6abd = _0x49dfef.get(_0xe0e8f, "code", -1);
+      if (_0x4c6abd == 0) {
+        let _0x50379e = _0xe0e8f?.["video"]?.["map"](_0x58c3db => _0x58c3db.videoType) || [],
+          _0x44c075 = _0x131d2d.filter(_0x26acb3 => !_0x50379e.includes(_0x26acb3)),
+          _0x1b9205 = false;
+        for (let _0x296e2f of _0x44c075) {
+          if (_0x1b9205) {
+            let _0x207ec8 = Math.floor(Math.random() * 5000) + 3000;
+            await _0x49dfef.wait(_0x207ec8);
+          }
+          await this.month_jml_addVideoCount(_0x296e2f);
+          _0x1b9205 = true;
+        }
+      } else {
+        let _0x339250 = _0xe0e8f?.["msg"] || _0xe0e8f?.["resoultMsg"] || _0xe0e8f?.["error"] || "";
+        this.log("查询看视频得抽奖机会次数失败[" + _0x4c6abd + "]: " + _0x339250);
+      }
+    } catch (_0x429f08) {
+      console.log(_0x429f08);
+    }
+  }
+  async ["month_jml_addVideoCount"](_0x2dbf41, _0x50f9ff = {}) {
+    try {
+      const _0x14d272 = {
+        "phone": this.name,
+        "videoType": _0x2dbf41,
+        "flag": this.jml_tokenFlag
+      };
+      let _0x48ffb2 = {
+          "fn": "month_jml_addVideoCount",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/lottery/addVideoCount",
+          "json": {
+            "para": this.encrypt_para(_0x14d272)
+          }
+        },
+        {
+          result: _0xd70cc8,
+          statusCode: _0x362431
+        } = await this.request(_0x48ffb2),
+        _0x10cd4b = _0x49dfef.get(_0xd70cc8, "code", -1);
+      if (_0x10cd4b == 0) {
+        this.log("看视频[" + _0x2dbf41 + "]得抽奖机会成功");
+      } else {
+        let _0x201f3c = _0xd70cc8?.["msg"] || _0xd70cc8?.["resoultMsg"] || _0xd70cc8?.["error"] || "";
+        this.log("看视频[" + _0x2dbf41 + "]得抽奖机会失败[" + _0x10cd4b + "]: " + _0x201f3c);
+      }
+    } catch (_0x1a85d3) {
+      console.log(_0x1a85d3);
+    }
+  }
+  async ["month_jml_refresh"](_0xa658a6 = {}) {
+    try {
+      const _0x459312 = {
+        "phone": this.name,
+        "flag": this.jml_tokenFlag
+      };
+      let _0x115aa8 = {
+          "fn": "month_jml_refresh",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/lottery/refresh",
+          "json": {
+            "para": this.encrypt_para(_0x459312)
+          }
+        },
+        {
+          result: _0x58905d,
+          statusCode: _0x3bcd41
+        } = await this.request(_0x115aa8),
+        _0x18811b = _0x49dfef.get(_0x58905d, "code", -1);
+      if (_0x18811b == -1) {
+        let _0x5aa123 = _0x58905d?.["rNumber"] || 0;
+        this.log("可以抽奖" + _0x5aa123 + "次");
+        let _0xbde451 = false;
+        while (_0x5aa123-- > 0) {
+          if (_0xbde451) {
+            let _0x2f5373 = Math.floor(Math.random() * 5000) + 3000;
+            await _0x49dfef.wait(_0x2f5373);
+          }
+          await this.month_jml_lotteryRevice();
+          _0xbde451 = true;
+        }
+      } else {
+        let _0x45301f = _0x58905d?.["msg"] || _0x58905d?.["resoultMsg"] || _0x58905d?.["error"] || "";
+        this.log("查询抽奖次数失败[" + _0x18811b + "]: " + _0x45301f);
+      }
+    } catch (_0x120aad) {
+      console.log(_0x120aad);
+    }
+  }
+  async ["month_jml_lotteryRevice"](_0x498793 = {}) {
+    try {
+      const _0x2b7e54 = {
+        "phone": this.name,
+        "flag": this.jml_tokenFlag
+      };
+      let _0x3ca896 = {
+          "fn": "month_jml_lotteryRevice",
+          "method": "post",
+          "url": "https://wapside.189.cn:9001/jt-sign/lottery/lotteryRevice",
+          "json": {
+            "para": this.encrypt_para(_0x2b7e54)
+          }
+        },
+        {
+          result: _0x17e63d,
+          statusCode: _0x47228a
+        } = await this.request(_0x3ca896),
+        _0x1292b5 = _0x49dfef.get(_0x17e63d, "code", -1);
+      if (_0x1292b5 == 0) {
+        let {
+          rname: _0x3d7d54,
+          id: _0x2b3b0f
+        } = _0x17e63d;
+        const _0x2cd200 = {
+          "notify": true
+        };
+        this.log("每月见面礼抽奖: " + _0x3d7d54, _0x2cd200);
+      } else {
+        let _0x4e7de6 = _0x17e63d?.["msg"] || _0x17e63d?.["resoultMsg"] || _0x17e63d?.["error"] || "";
+        this.log("每月见面礼抽奖失败[" + _0x1292b5 + "]: " + _0x4e7de6);
+      }
+    } catch (_0x355689) {
+      console.log(_0x355689);
+    }
+  }
+  async ["rpc_request"](_0x55b8f9, _0x4b0e9c = "get", _0x2b5ff1 = null) {
+    const _0x2e4617 = new Error(),
+      _0x1b1e2d = _0x2e4617.stack,
+      _0x1eb1c3 = _0x1b1e2d.split("\n"),
+      _0x35b07b = _0x1eb1c3?.[2]?.["match"](/UserClass\.(\w+)/)?.[1] || "rpc";
+    let _0x190868 = {
+      "fn": _0x35b07b,
+      "method": "post",
+      "url": _0x16d3ea,
+      "json": {
+        "key": _0x344953,
+        "method": _0x4b0e9c,
+        "url": _0x55b8f9.toString(),
+        "headers": this.get_mall_headers(),
+        "data": JSON.stringify(_0x2b5ff1)
+      }
+    };
+    return await this.request(_0x190868);
+  }
+  async ["auth_login"](_0x1fed7f = {}) {
+    let _0xafb0c3 = false;
+    try {
+      let _0x1b2d26 = this.ticket,
+        _0x2bff70 = new URL("https://wapact.189.cn:9001/unified/user/login"),
+        _0x434a75 = {
+          "ticket": _0x1b2d26,
+          "backUrl": encodeURIComponent("https://wapact.189.cn:9001/JinDouMall/JinDouMall_luckDraw.html?ticket=" + _0x1b2d26),
+          "platformCode": "P201010301",
+          "loginType": 2
+        },
+        {
+          result: _0x557820,
+          statusCode: _0x57323f
+        } = await this.rpc_request(_0x2bff70, "POST", _0x434a75),
+        _0x5330c5 = _0x49dfef.get(_0x557820, "code", _0x57323f);
+      if (_0x5330c5 == 0) {
+        let {
+          token: _0x476882,
+          sessionId: _0x17ce63
+        } = _0x557820?.["biz"];
+        this.mall_token = _0x476882;
+        _0xafb0c3 = true;
+      } else {
+        let _0x1c5e02 = _0x49dfef.get(_0x557820, "message", "");
+        this.log("商城登录失败[" + _0x5330c5 + "]: " + _0x1c5e02);
+      }
+    } catch (_0x26e08c) {
+      console.log(_0x26e08c);
+    } finally {
+      return _0xafb0c3;
+    }
+  }
+  async ["queryInfo"](_0x5b2776 = {}) {
+    try {
+      let _0x1b75d6 = new URL("https://wapact.189.cn:9001/gateway/golden/api/queryInfo");
+      _0x1b75d6.searchParams.append("_", Date.now().toString());
+      let {
+          result: _0x216d65,
+          statusCode: _0x12037e
+        } = await this.rpc_request(_0x1b75d6),
+        _0x40fdcc = _0x49dfef.get(_0x216d65, "code", _0x12037e);
+      if (_0x40fdcc == 0) this.coin = _0x216d65?.["biz"]?.["amountTotal"] || this.coin, await this.queryTurnTable();else {
+        let _0x1ea57d = _0x49dfef.get(_0x216d65, "message", "");
+        this.log("查询商城状态失败[" + _0x40fdcc + "]: " + _0x1ea57d);
+      }
+    } catch (_0x1b8d51) {
+      console.log(_0x1b8d51);
+    }
+  }
+  async ["queryTurnTable"](_0x50146b = {}) {
+    try {
+      let _0x720fcb = new URL("https://wapact.189.cn:9001/gateway/golden/api/queryTurnTable");
+      _0x720fcb.searchParams.append("userType", "1");
+      _0x720fcb.searchParams.append("_", Date.now().toString());
+      let {
+          result: _0x1cb020,
+          statusCode: _0x927ab0
+        } = await this.rpc_request(_0x720fcb),
+        _0x229fb9 = _0x49dfef.get(_0x1cb020, "code", _0x927ab0);
+      if (_0x229fb9 == 0) {
+        let _0x1d2636 = _0x1cb020?.["biz"]?.["xiaoHaoCount"] || 20,
+          _0x35f0bf = _0x1cb020?.["biz"]?.["wzTurntable"]?.["code"] || "";
+        _0x35f0bf ? await this.lottery_check(_0x35f0bf, _0x1d2636) : this.log("没有获取到转盘抽奖ID");
+      } else {
+        let _0x2eff62 = _0x49dfef.get(_0x1cb020, "message", "");
+        this.log("获取转盘抽奖活动失败[" + _0x229fb9 + "]: " + _0x2eff62);
+      }
+    } catch (_0x28d0fc) {
+      console.log(_0x28d0fc);
+    }
+  }
+  async ["lottery_check"](_0xa07018, _0x2e3b05, _0xcb5cc3 = {}) {
+    try {
+      let _0x14c381 = new URL("https://wapact.189.cn:9001/gateway/stand/detail/check");
+      _0x14c381.searchParams.append("activityId", _0xa07018);
+      _0x14c381.searchParams.append("_", Date.now().toString());
+      let {
+          result: _0x550887,
+          statusCode: _0x3d5554
+        } = await this.rpc_request(_0x14c381),
+        _0x345ab0 = _0x49dfef.get(_0x550887, "code", _0x3d5554);
+      if (_0x345ab0 == 0) {
+        let _0x565cdb = _0x550887?.["biz"]?.["resultInfo"]?.["chanceCount"] || 0;
+        this.log("转盘可以抽奖" + _0x565cdb + "次, 消耗金豆" + _0x2e3b05 + "/" + this.coin);
+        let _0x41bc66 = false;
+        while (_0x565cdb-- > 0 && this.coin >= _0x2e3b05) {
+          _0x41bc66 && (await _0x49dfef.wait(3000));
+          _0x41bc66 = true;
+          await this.lottery_do(_0xa07018, _0x2e3b05);
+        }
+      } else {
+        let _0x2f37b1 = _0x49dfef.get(_0x550887, "message", "");
+        this.log("查询转盘抽奖次数失败[" + _0x345ab0 + "]: " + _0x2f37b1);
+      }
+    } catch (_0x2d4580) {
+      console.log(_0x2d4580);
+    }
+  }
+  async ["lottery_do"](_0x13b178, _0x33c8a8 = {}) {
+    try {
+      let _0x428f3d = new URL("https://wapact.189.cn:9001/gateway/golden/api/lottery");
+      const _0x11aef8 = {
+        "activityId": _0x13b178
+      };
+      let {
+          result: _0x4584cc,
+          statusCode: _0x239bc9
+        } = await this.rpc_request(_0x428f3d, "POST", _0x11aef8),
+        _0x3f8c97 = _0x49dfef.get(_0x4584cc, "code", _0x239bc9);
+      if (_0x3f8c97 == 0) {
+        this.coin = _0x4584cc?.["biz"]?.["amountTotal"] || this.coin - xiaoHaoCount;
+        let _0x2998b5 = _0x4584cc?.["biz"]?.["resultCode"],
+          _0x57f91f = "";
+        switch (_0x2998b5) {
+          case "0":
+            {
+              let _0x4b2a9e = _0x4584cc?.["biz"]?.["resultInfo"]?.["winTitle"] || "空气";
+              const _0x1c2e0e = {
+                "notify": true
+              };
+              this.log("转盘抽奖: " + _0x4b2a9e, _0x1c2e0e);
+              return;
+            }
+          case "412":
+            {
+              _0x57f91f = "抽奖次数已达上限";
+              break;
+            }
+          case "413":
+          case "420":
+            {
+              _0x57f91f = "金豆不足";
+              break;
+            }
+          default:
+            {
+              this.log(": " + JSON.stringify(_0x4584cc));
+              _0x57f91f = "未知原因";
+              break;
+            }
+        }
+        this.log("转盘抽奖失败[" + _0x2998b5 + "]: " + _0x57f91f);
+      } else {
+        let _0x307168 = _0x49dfef.get(_0x4584cc, "message", "");
+        this.log("转盘抽奖错误[" + _0x3f8c97 + "]: " + _0x307168);
+      }
+    } catch (_0x298342) {
+      console.log(_0x298342);
+    }
+  }
+  async ["userTask"]() {
+    const _0x415202 = {
+      "notify": true
+    };
+    _0x49dfef.log("\n======= 账号[" + this.index + "][" + this.name + "] =======", _0x415202);
+    if (!this.load_token() && !(await this.login())) {
+      return;
+    }
+    if (!(await this.get_ticket())) return;
+    if (!(await this.get_sign())) return;
+    await this.userCoinInfo();
+    await this.getLevelRightsList();
+    await this.month_jml_preCost();
+    await this.userStatusInfo();
+    await this.continueSignRecords();
+    await this.homepage("hg_qd_zrwzjd");
+    await this.getParadiseInfo();
+    _0x16d3ea && (await this.userLotteryTask());
+    await this.userCoinInfo(true);
+  }
+  async ["userLotteryTask"]() {
+    if (!(await this.auth_login())) return;
+    await this.queryInfo();
+  }
+}
+!(async () => {
+  _0x49dfef.read_env(_0x3f433d);
+  _0xa0ff1b();
+  for (let _0x414b26 of _0x49dfef.userList) {
+    await _0x414b26.userTask();
+  }
+})().catch(_0x854f1e => _0x49dfef.log(_0x854f1e)).finally(() => _0x49dfef.exitNow());
+async function _0x1a2249(_0x505470 = 0) {
+  let _0x3ad891 = false;
+  try {
+    const _0x436527 = {
+      "fn": "auth",
+      "method": "get",
+      "url": _0x100b57,
+      "timeout": 20000
+    };
+    let {
+      statusCode: _0x22aed6,
+      result: _0x383274
+    } = await _0x3b1630.request(_0x436527);
+    if (_0x22aed6 != 200) return _0x505470++ < _0x3c685e && (_0x3ad891 = await _0x1a2249(_0x505470)), _0x3ad891;
+    if (_0x383274?.["code"] == 0) {
+      _0x383274 = JSON.parse(_0x383274.data.file.data);
+      if (_0x383274?.["commonNotify"] && _0x383274.commonNotify.length > 0) {
+        const _0x35029e = {
+          "notify": true
+        };
+        _0x49dfef.log(_0x383274.commonNotify.join("\n") + "\n", _0x35029e);
+      }
+      _0x383274?.["commonMsg"] && _0x383274.commonMsg.length > 0 && _0x49dfef.log(_0x383274.commonMsg.join("\n") + "\n");
+      if (_0x383274[_0x14f289]) {
+        let _0x4cacff = _0x383274[_0x14f289];
+        _0x4cacff.status == 0 ? _0xf4231c >= _0x4cacff.version ? (_0x3ad891 = true, _0x49dfef.log(_0x4cacff.msg[_0x4cacff.status]), _0x49dfef.log(_0x4cacff.updateMsg), _0x49dfef.log("现在运行的脚本版本是：" + _0xf4231c + "，最新脚本版本：" + _0x4cacff.latestVersion)) : _0x49dfef.log(_0x4cacff.versionMsg) : _0x49dfef.log(_0x4cacff.msg[_0x4cacff.status]);
+      } else _0x49dfef.log(_0x383274.errorMsg);
+    } else _0x505470++ < _0x3c685e && (_0x3ad891 = await _0x1a2249(_0x505470));
+  } catch (_0x1a136d) {
+    _0x49dfef.log(_0x1a136d);
+  } finally {
+    return _0x3ad891;
+  }
+}
+function _0x5370a4(_0x1f7db9) {
+  return new class {
+    constructor(_0x1f51b5) {
+      this.name = _0x1f51b5;
+      this.startTime = Date.now();
+      const _0x507166 = {
+        "time": true
+      };
+      this.log("[" + this.name + "]开始运行\n", _0x507166);
+      this.notifyStr = [];
+      this.notifyFlag = true;
+      this.userIdx = 0;
+      this.userList = [];
+      this.userCount = 0;
+      this.default_timestamp_len = 13;
+      this.default_wait_interval = 1000;
+      this.default_wait_limit = 3600000;
+      this.default_wait_ahead = 0;
+    }
+    ["log"](_0x567e36, _0x7b8a3b = {}) {
+      const _0xb3f162 = {
+        "console": true
+      };
+      Object.assign(_0xb3f162, _0x7b8a3b);
+      if (_0xb3f162.time) {
+        let _0x129649 = _0xb3f162.fmt || "hh:mm:ss";
+        _0x567e36 = "[" + this.time(_0x129649) + "]" + _0x567e36;
+      }
+      _0xb3f162.notify && this.notifyStr.push(_0x567e36);
+      _0xb3f162.console && console.log(_0x567e36);
+    }
+    ["get"](_0x312e83, _0x5b2d51, _0x1896f9 = "") {
+      let _0x57eb19 = _0x1896f9;
+      return _0x312e83?.["hasOwnProperty"](_0x5b2d51) && (_0x57eb19 = _0x312e83[_0x5b2d51]), _0x57eb19;
+    }
+    ["pop"](_0x794644, _0x5a5725, _0x13f65e = "") {
+      let _0x70d920 = _0x13f65e;
+      return _0x794644?.["hasOwnProperty"](_0x5a5725) && (_0x70d920 = _0x794644[_0x5a5725], delete _0x794644[_0x5a5725]), _0x70d920;
+    }
+    ["copy"](_0x2acf1b) {
+      return Object.assign({}, _0x2acf1b);
+    }
+    ["read_env"](_0x1830f6) {
+      let _0xe4a559 = _0x4aec53.map(_0x4d5e0e => process.env[_0x4d5e0e]);
+      for (let _0x5d7af5 of _0xe4a559.filter(_0x1ed70f => !!_0x1ed70f)) {
+        for (let _0x118e24 of _0x5d7af5.split(_0x1876a7).filter(_0x2a2463 => !!_0x2a2463)) {
+          if (this.userList.includes(_0x118e24)) continue;
+          this.userList.push(new _0x1830f6(_0x118e24));
+        }
+      }
+      this.userCount = this.userList.length;
+      if (!this.userCount) {
+        const _0x4726f2 = {
+          "notify": true
+        };
+        return this.log("未找到变量，请检查变量" + _0x4aec53.map(_0x327825 => "[" + _0x327825 + "]").join("或"), _0x4726f2), false;
+      }
+      return this.log("共找到" + this.userCount + "个账号"), true;
+    }
+    ["time"](_0x4bbd9b, _0x27948f = null) {
+      let _0x32781a = _0x27948f ? new Date(_0x27948f) : new Date(),
+        _0x1ac37c = {
+          "M+": _0x32781a.getMonth() + 1,
+          "d+": _0x32781a.getDate(),
+          "h+": _0x32781a.getHours(),
+          "m+": _0x32781a.getMinutes(),
+          "s+": _0x32781a.getSeconds(),
+          "q+": Math.floor((_0x32781a.getMonth() + 3) / 3),
+          "S": this.padStr(_0x32781a.getMilliseconds(), 3)
+        };
+      /(y+)/.test(_0x4bbd9b) && (_0x4bbd9b = _0x4bbd9b.replace(RegExp.$1, (_0x32781a.getFullYear() + "").substr(4 - RegExp.$1.length)));
+      for (let _0x2eb56e in _0x1ac37c) new RegExp("(" + _0x2eb56e + ")").test(_0x4bbd9b) && (_0x4bbd9b = _0x4bbd9b.replace(RegExp.$1, 1 == RegExp.$1.length ? _0x1ac37c[_0x2eb56e] : ("00" + _0x1ac37c[_0x2eb56e]).substr(("" + _0x1ac37c[_0x2eb56e]).length)));
+      return _0x4bbd9b;
+    }
+    async ["showmsg"]() {
+      if (!this.notifyFlag) return;
+      if (!this.notifyStr.length) return;
+      var _0x243e42 = require("./sendNotify");
+      this.log("\n============== 推送 ==============");
+      await _0x243e42.sendNotify(this.name, this.notifyStr.join("\n"));
+    }
+    ["padStr"](_0x673339, _0xa81675, _0x2f4e5f = {}) {
+      let _0x80b59e = _0x2f4e5f.padding || "0",
+        _0xf4e49e = _0x2f4e5f.mode || "l",
+        _0x2f4a48 = String(_0x673339),
+        _0x6032bd = _0xa81675 > _0x2f4a48.length ? _0xa81675 - _0x2f4a48.length : 0,
+        _0x37b710 = "";
+      for (let _0x360ad0 = 0; _0x360ad0 < _0x6032bd; _0x360ad0++) {
+        _0x37b710 += _0x80b59e;
+      }
+      return _0xf4e49e == "r" ? _0x2f4a48 = _0x2f4a48 + _0x37b710 : _0x2f4a48 = _0x37b710 + _0x2f4a48, _0x2f4a48;
+    }
+    ["json2str"](_0x539dfb, _0x36ffa7, _0x23f214 = false) {
+      let _0x150241 = [];
+      for (let _0x4584f4 of Object.keys(_0x539dfb).sort()) {
+        let _0x190852 = _0x539dfb[_0x4584f4];
+        if (_0x190852 && _0x23f214) {
+          _0x190852 = encodeURIComponent(_0x190852);
+        }
+        _0x150241.push(_0x4584f4 + "=" + _0x190852);
+      }
+      return _0x150241.join(_0x36ffa7);
+    }
+    ["str2json"](_0x4b5ef6, _0x3c5776 = false) {
+      let _0x30cbdb = {};
+      for (let _0x8c21 of _0x4b5ef6.split("&")) {
+        if (!_0x8c21) continue;
+        let _0x2ca926 = _0x8c21.indexOf("=");
+        if (_0x2ca926 == -1) continue;
+        let _0x2458c5 = _0x8c21.substr(0, _0x2ca926),
+          _0x246ded = _0x8c21.substr(_0x2ca926 + 1);
+        _0x3c5776 && (_0x246ded = decodeURIComponent(_0x246ded));
+        _0x30cbdb[_0x2458c5] = _0x246ded;
+      }
+      return _0x30cbdb;
+    }
+    ["randomPattern"](_0x2b877c, _0xd1024 = "abcdef0123456789") {
+      let _0x133f94 = "";
+      for (let _0x26d557 of _0x2b877c) {
+        _0x26d557 == "x" ? _0x133f94 += _0xd1024.charAt(Math.floor(Math.random() * _0xd1024.length)) : _0x26d557 == "X" ? _0x133f94 += _0xd1024.charAt(Math.floor(Math.random() * _0xd1024.length)).toUpperCase() : _0x133f94 += _0x26d557;
+      }
+      return _0x133f94;
+    }
+    ["randomUuid"]() {
+      return this.randomPattern("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx");
+    }
+    ["randomString"](_0x44a497, _0x2e6578 = "abcdef0123456789") {
+      let _0x570d69 = "";
+      for (let _0x23bfd5 = 0; _0x23bfd5 < _0x44a497; _0x23bfd5++) {
+        _0x570d69 += _0x2e6578.charAt(Math.floor(Math.random() * _0x2e6578.length));
+      }
+      return _0x570d69;
+    }
+    ["randomList"](_0x304d02) {
+      let _0x48b21b = Math.floor(Math.random() * _0x304d02.length);
+      return _0x304d02[_0x48b21b];
+    }
+    ["wait"](_0x2aba64) {
+      return new Promise(_0x261319 => setTimeout(_0x261319, _0x2aba64));
+    }
+    async ["exitNow"]() {
+      await this.showmsg();
+      let _0x12d627 = Date.now(),
+        _0x869a83 = (_0x12d627 - this.startTime) / 1000;
+      this.log("");
+      const _0x167e57 = {
+        "time": true
+      };
+      this.log("[" + this.name + "]运行结束，共运行了" + _0x869a83 + "秒", _0x167e57);
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
+      process.exit(0);
+    }
+    ["normalize_time"](_0x504b30, _0x55d294 = {}) {
+      let _0x57e46f = _0x55d294.len || this.default_timestamp_len;
+      _0x504b30 = _0x504b30.toString();
+      let _0x3ec8ce = _0x504b30.length;
+      while (_0x3ec8ce < _0x57e46f) {
+        _0x504b30 += "0";
+      }
+      return _0x3ec8ce > _0x57e46f && (_0x504b30 = _0x504b30.slice(0, 13)), parseInt(_0x504b30);
+    }
+    async ["wait_until"](_0x273c17, _0x8f529c = {}) {
+      let _0x1ec44d = _0x8f529c.logger || this,
+        _0xf3338c = _0x8f529c.interval || this.default_wait_interval,
+        _0x4bdb2a = _0x8f529c.limit || this.default_wait_limit,
+        _0x220dad = _0x8f529c.ahead || this.default_wait_ahead;
+      if (typeof _0x273c17 == "string" && _0x273c17.includes(":")) {
+        if (_0x273c17.includes("-")) _0x273c17 = new Date(_0x273c17).getTime();else {
+          let _0x38f17a = this.time("yyyy-MM-dd ");
+          _0x273c17 = new Date(_0x38f17a + _0x273c17).getTime();
+        }
+      }
+      let _0x397c55 = this.normalize_time(_0x273c17) - _0x220dad,
+        _0x57bf1f = this.time("hh:mm:ss.S", _0x397c55),
+        _0x6a4035 = Date.now();
+      _0x6a4035 > _0x397c55 && (_0x397c55 += 86400000);
+      let _0x60ae2e = _0x397c55 - _0x6a4035;
+      if (_0x60ae2e > _0x4bdb2a) {
+        const _0x46b1bf = {
+          "time": true
+        };
+        _0x1ec44d.log("离目标时间[" + _0x57bf1f + "]大于" + _0x4bdb2a / 1000 + "秒,不等待", _0x46b1bf);
+      } else {
+        const _0x50f445 = {
+          "time": true
+        };
+        _0x1ec44d.log("离目标时间[" + _0x57bf1f + "]还有" + _0x60ae2e / 1000 + "秒,开始等待", _0x50f445);
+        while (_0x60ae2e > 0) {
+          let _0x244b56 = Math.min(_0x60ae2e, _0xf3338c);
+          await this.wait(_0x244b56);
+          _0x6a4035 = Date.now();
+          _0x60ae2e = _0x397c55 - _0x6a4035;
+        }
+        const _0x5938fc = {
+          "time": true
+        };
+        _0x1ec44d.log("已完成等待", _0x5938fc);
+      }
+    }
+    async ["wait_gap_interval"](_0x560a3a, _0x4079c7) {
+      let _0x41c668 = Date.now() - _0x560a3a;
+      _0x41c668 < _0x4079c7 && (await this.wait(_0x4079c7 - _0x41c668));
+    }
+  }(_0x1f7db9);
 }
